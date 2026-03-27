@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>WheresMyTomato – Datenmodell</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden;user-select:none}
+
+/* ── TOOLBAR ── */
+#bar{position:fixed;top:0;left:0;right:0;height:48px;background:#161b22;border-bottom:1px solid #30363d;display:flex;align-items:center;gap:7px;padding:0 12px;z-index:300}
+#search{width:200px;padding:5px 10px;border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#e6edf3;font-size:12px;outline:none}
+#search:focus{border-color:#58a6ff}
+#search::placeholder{color:#484f58}
+.tag{font-size:11px;padding:3px 8px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:opacity .12s;white-space:nowrap}
+.tag.on{opacity:1}.tag.off{opacity:.3}
+.t-off{background:#388bfd18;color:#79c0ff;border-color:#388bfd33}
+.t-bri{background:#8957e518;color:#d2a8ff;border-color:#8957e533}
+.t-tom{background:#3fb95018;color:#7ee787;border-color:#3fb95033}
+.t-col{background:#58c0fc18;color:#58c0fc;border-color:#58c0fc33}
+.t-sta{background:#1D9E7518;color:#56d364;border-color:#1D9E7533}
+.t-qua{background:#BA751718;color:#f0a84c;border-color:#BA751733}
+.t-use{background:#D4537E18;color:#f778ba;border-color:#D4537E33}
+.t-enu{background:#D85A3018;color:#ffa198;border-color:#D85A3033}
+.sep{width:1px;height:24px;background:#30363d;flex-shrink:0}
+#inf{font-size:11px;color:#484f58;margin-left:auto;white-space:nowrap}
+#btn-reset{padding:4px 10px;border:1px solid #30363d;border-radius:6px;background:transparent;color:#8b949e;font-size:11px;cursor:pointer;flex-shrink:0}
+#btn-reset:hover{border-color:#58a6ff;color:#58a6ff}
+
+/* ── CANVAS ── */
+#cv{position:fixed;top:48px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#cv.grab{cursor:grabbing}
+#world{position:absolute;transform-origin:0 0}
+
+/* ── GROUP LABELS ── */
+.glabel{position:absolute;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.35;pointer-events:none;white-space:nowrap}
+
+/* ── NODE ── */
+.node{position:absolute;width:256px;border-radius:8px;border:1px solid #30363d;background:#161b22;cursor:pointer;transition:border-color .12s,box-shadow .12s,opacity .15s}
+.node:hover{border-color:#444c56;z-index:10}
+.node.sel{border-color:#58a6ff !important;box-shadow:0 0 0 2px rgba(88,166,255,.22);z-index:50}
+.node.rel{border-color:#3fb95066;z-index:20}
+.node.dim{opacity:.12;pointer-events:none}
+
+/* header */
+.nh{padding:7px 10px 6px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:6px}
+.g-off .nh{background:#388bfd12}.g-bridge .nh{background:#8957e512}.g-tomapo .nh{background:#3fb95012}
+.g-cold .nh{background:#58c0fc12}.g-station .nh{background:#1D9E7512}.g-quality .nh{background:#BA751712}
+.g-user .nh{background:#D4537E12}.g-enum .nh{background:#D85A3012}
+.na{width:3px;height:22px;border-radius:2px;flex-shrink:0}
+.g-core .na{background:#3fb950}.g-product .na{background:#388bfd}.g-station .na{background:#1D9E75}
+.g-quality .na{background:#BA7517}.g-cold .na{background:#58c0fc}.g-alert .na{background:#f78166}
+.g-user .na{background:#D4537E}.g-service .na{background:#8957e5}.g-enum .na{background:#D85A30}
+.ntitle{font-size:11.5px;font-weight:600;color:#f0f6fc;flex:1;line-height:1.2}
+.nkind{font-size:8.5px;color:#484f58;padding:1px 4px;border-radius:3px;background:#0d1117;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+/* connection count badge */
+.nbadge{font-size:9px;padding:1px 5px;border-radius:8px;background:#21262d;color:#6e7681;flex-shrink:0;cursor:pointer}
+.node.sel .nbadge{background:#388bfd22;color:#79c0ff}
+
+/* fields */
+.nf{border-top:1px solid #21262d;padding:3px 0;display:none}
+.node.open .nf{display:block}
+.frow{display:flex;align-items:baseline;gap:3px;padding:1px 9px;font-size:10px;line-height:1.45}
+.frow:hover{background:#1c2128}
+.fn{color:#79c0ff;font-family:'SF Mono','Fira Code',monospace;font-size:9.5px;flex-shrink:0}
+.fn.ice{color:#58c0fc}.fn.dim{color:#6e7681;font-style:italic}
+.ft{color:#484f58;font-family:'SF Mono','Fira Code',monospace;font-size:9px;margin-left:auto;flex-shrink:0;padding-left:3px}
+.fnt{color:#484f58;font-size:9px}
+
+/* enum cases */
+.ecases{padding:5px 9px 7px;border-top:1px solid #21262d;display:none;flex-wrap:wrap;gap:3px}
+.node.open .ecases{display:flex}
+.ec{font-size:9px;font-family:'SF Mono','Fira Code',monospace;color:#d2a8ff;background:#8957e510;padding:1px 5px;border-radius:3px;border:1px solid #8957e522}
+.g-enum .ec{color:#ffa198;background:#D85A3010;border-color:#D85A3022}
+
+/* ── SIDE PANEL ── */
+#panel{position:fixed;top:48px;right:0;width:300px;bottom:0;background:#161b22;border-left:1px solid #30363d;z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s}
+#panel.open{transform:translateX(0)}
+#ph{padding:14px 16px 10px;border-bottom:1px solid #21262d;display:flex;align-items:flex-start;gap:8px}
+#ph-name{font-size:13px;font-weight:600;color:#f0f6fc;flex:1;line-height:1.3}
+#ph-kind{font-size:10px;color:#6e7681;margin-top:2px}
+#ph-close{font-size:16px;color:#6e7681;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0}
+#ph-close:hover{color:#f0f6fc}
+#plist{flex:1;overflow-y:auto;padding:8px 0}
+.psec{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#484f58;padding:10px 16px 4px}
+.prow{padding:6px 16px;cursor:pointer;border-bottom:1px solid #21262d22;transition:background .1s}
+.prow:hover{background:#21262d}
+.prow-label{font-size:9.5px;color:#6e7681;margin-bottom:2px}
+.prow-name{font-size:11px;font-weight:600;color:#e6edf3;display:flex;align-items:center;gap:5px}
+.prow-name .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.prow-rel{font-size:9px;color:#484f58;font-family:'SF Mono','Fira Code',monospace;margin-top:1px}
+#pempty{padding:24px 16px;font-size:11px;color:#484f58;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <input id="search" placeholder="Struct oder Feld suchen…" oninput="doSearch()">
+  <div class="sep"></div>
+  <span class="tag t-off on" data-g="off"     onclick="toggleTag(this)">OFF</span>
+  <span class="tag t-bri on" data-g="bridge"  onclick="toggleTag(this)">Bridge</span>
+  <span class="tag t-tom on" data-g="tomapo"  onclick="toggleTag(this)">Tomapo</span>
+  <span class="tag t-col on" data-g="cold"    onclick="toggleTag(this)">🧊 Kühlung</span>
+  <span class="tag t-sta on" data-g="station" onclick="toggleTag(this)">Stationen</span>
+  <span class="tag t-qua on" data-g="quality" onclick="toggleTag(this)">Qualität</span>
+  <span class="tag t-use on" data-g="user"    onclick="toggleTag(this)">User</span>
+  <span class="tag t-enu on" data-g="enum"    onclick="toggleTag(this)">Enums</span>
+  <div class="sep"></div>
+  <button id="btn-reset" onclick="resetView()">Reset</button>
+  <span id="inf">Klick = Felder · Badge = Verbindungen</span>
+</div>
+
+<!-- Side panel: connections of selected node -->
+<div id="panel">
+  <div id="ph">
+    <div><div id="ph-name">–</div><div id="ph-kind"></div></div>
+    <div id="ph-close" onclick="closePanel()">✕</div>
+  </div>
+  <div id="plist"><div id="pempty">Wähle einen Node um seine<br>Verbindungen zu sehen</div></div>
+</div>
+
+<div id="cv">
+  <div id="world"></div>
+</div>
+
+<script>
+const MODEL = {
+  groups:[
+    {id:"core",    label:"Tomapo Core",    color:"#3fb950"},
+    {id:"product", label:"Produktdaten",   color:"#388bfd"},
+    {id:"station", label:"Stationen",      color:"#1D9E75"},
+    {id:"quality", label:"Qualität",       color:"#BA7517"},
+    {id:"cold",    label:"Kühlkette",      color:"#58c0fc"},
+    {id:"alert",   label:"Alerts",         color:"#f78166"},
+    {id:"user",    label:"User Layer",     color:"#D4537E"},
+    {id:"service", label:"Service/State",  color:"#8957e5"},
+    {id:"enum",    label:"Enums",          color:"#D85A30"},
+  ],
+  nodes:[
+  // ── CORE ──────────────────────────────────────────────────────────
+  {id:"TomapoResponse",g:"core",kind:"struct · Haupt-Einstiegspunkt",fields:[
+    // Identität
+    {n:"barcode",t:"String"},{n:"batchId",t:"String?"},{n:"generatedAt",t:"Date"},
+    // Produkt
+    {n:"productName",t:"String?"},{n:"genericName",t:"String?"},{n:"brands",t:"String?"},
+    {n:"quantity",t:"String?"},{n:"productQuantity",t:"Double?"},{n:"productQuantityUnit",t:"String?"},
+    {n:"servingSize",t:"String?"},{n:"servingQuantity",t:"Double?"},{n:"storesTags",t:"[String]?"},
+    // Bilder
+    {n:"imageUrl",t:"String?"},{n:"imageFrontUrl",t:"String?"},{n:"imageIngredientsUrl",t:"String?"},
+    {n:"imageNutritionUrl",t:"String?"},{n:"imagePackagingUrl",t:"String?"},
+    // Kategorisierung
+    {n:"categoriesTags",t:"[String]?"},{n:"foodGroupsTags",t:"[String]?"},{n:"foodGroups",t:"String?"},
+    {n:"pnnsGroups1",t:"String?"},{n:"pnnsGroups2",t:"String?"},
+    // Scores
+    {n:"nutriscoreGrade",t:"String?",note:"a–e/unknown"},{n:"nutriscoreScore",t:"Int?"},
+    {n:"ecoscoreGrade",t:"String?",note:"a–e/not-applicable"},{n:"ecoscoreScore",t:"Int?"},
+    {n:"novaGroup",t:"Int?",note:"1–4"},{n:"novaGroupError",t:"String?"},
+    // Nährwerte
+    {n:"nutriments",t:"ProductNutriments?"},{n:"nutrientLevels",t:"ProductNutrientLevels?"},
+    // Zutaten (Rohliste)
+    {n:"ingredientsText",t:"String?"},{n:"rawIngredients",t:"[RawIngredient]?"},
+    {n:"ingredientsN",t:"Int?"},{n:"additivesN",t:"Int?"},{n:"additivesTags",t:"[String]?"},
+    // Allergene & Diät
+    {n:"allergensTags",t:"[String]?"},{n:"tracesTags",t:"[String]?"},{n:"ingredientsAnalysisTags",t:"[String]?"},
+    // Labels & Herkunft
+    {n:"labelsTags",t:"[String]?"},{n:"countriesTags",t:"[String]?"},{n:"originsTags",t:"[String]?"},
+    {n:"manufacturingPlaces",t:"String?"},{n:"manufacturingPlacesTags",t:"[String]?"},
+    // Verpackung
+    {n:"packagingTags",t:"[String]?"},{n:"packagings",t:"[ProductPackaging]?"},
+    {n:"packagingText",t:"String?"},{n:"conservationConditions",t:"String?"},
+    // Datenqualität
+    {n:"dataQualityErrorsTags",t:"[String]?"},{n:"dataQualityWarningsTags",t:"[String]?"},
+    {n:"completeness",t:"Double?",note:"0–1"},
+    // Tomapo-Kern
+    {n:"alerts",t:"[TomapoProductAlert]"},{n:"stations",t:"[TomapoStation]"},
+    {n:"environmentSummary",t:"TomapoEnvironmentSummary"},{n:"certifications",t:"[TomapoCertification]"},
+    {n:"traceabilityScore",t:"TomapoTraceabilityScore"},{n:"dataSources",t:"[TomapoDataSource]"},
+    {n:"ingredients",t:"[ProductIngredient]"},
+    {n:"requiresColdChain",t:"Bool",cold:true},{n:"coldChainSummary",t:"TomapoColdChainSummary",cold:true},
+    // Computed
+    {n:"recallStatus",t:"TomapoRecallStatus",comp:true,note:"legacy"},{n:"activeAlerts",t:"[TomapoProductAlert]",comp:true},
+    {n:"nova",t:"NovaGroup",comp:true},{n:"nutri",t:"NutriScore",comp:true},{n:"eco",t:"NutriScore",comp:true},
+    {n:"hasReliableNutritionData",t:"Bool",comp:true},{n:"hasDataErrors",t:"Bool",comp:true},
+    {n:"veganStatus",t:"DietStatus",comp:true},{n:"displayImageUrl",t:"String?",comp:true},
+    {n:"hasActiveRecall",t:"Bool",comp:true},{n:"refrigeratedStations",t:"[TomapoStation]",comp:true,cold:true},
+    {n:"subProductIngredients",t:"[SubProductIngredient]",comp:true},
+    {n:"chemicalIngredients",t:"[ChemicalIngredient]",comp:true},
+  ]},
+  {id:"TomapoTraceabilityScore",g:"core",kind:"struct",fields:[
+    {n:"completeness",t:"Double",note:"0–1"},{n:"verifiedStations",t:"Int"},{n:"unknownStations",t:"Int"},
+    {n:"hasGaps",t:"Bool"},{n:"isThirdPartyVerified",t:"Bool"},{n:"blockchainHash",t:"String?"},
+  ]},
+  {id:"TomapoDataSource",g:"core",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"name",t:"String"},{n:"type",t:"DataSourceType"},{n:"lastSynced",t:"Date?"},{n:"reliability",t:"DataSourceReliability"},
+  ]},
+  {id:"TomapoRecallStatus",g:"core",kind:"struct · legacy",fields:[
+    {n:"isRecalled",t:"Bool"},{n:"severity",t:"RecallSeverity"},{n:"recallId",t:"String?"},
+    {n:"affectedBatches",t:"[String]?"},{n:"reason",t:"String?"},{n:"issuedBy",t:"String?"},
+    {n:"issuedAt",t:"Date?"},{n:"actionRequired",t:"String?"},{n:"moreInfoUrl",t:"String?"},
+  ]},
+
+  // ── PRODUCT DATA ──────────────────────────────────────────────────
+  {id:"ProductNutriments",g:"product",kind:"struct",fields:[
+    {n:"energyKcal100g",t:"Double?"},{n:"energyKj100g",t:"Double?"},{n:"energyKcalServing",t:"Double?"},{n:"energyKjServing",t:"Double?"},
+    {n:"fat100g",t:"Double?"},{n:"saturatedFat100g",t:"Double?"},{n:"fatServing",t:"Double?"},{n:"saturatedFatServing",t:"Double?"},
+    {n:"carbohydrates100g",t:"Double?"},{n:"sugars100g",t:"Double?"},{n:"fiber100g",t:"Double?"},
+    {n:"addedSugars100g",t:"Double?"},{n:"starch100g",t:"Double?"},
+    {n:"carbohydratesServing",t:"Double?"},{n:"sugarsServing",t:"Double?"},{n:"fiberServing",t:"Double?"},
+    {n:"proteins100g",t:"Double?"},{n:"proteinsServing",t:"Double?"},
+    {n:"salt100g",t:"Double?"},{n:"sodium100g",t:"Double?"},{n:"saltServing",t:"Double?"},{n:"sodiumServing",t:"Double?"},
+    {n:"novaGroup100g",t:"Double?"},
+    {n:"hasSuspiciousSaltValue",t:"Bool",comp:true},{n:"hasSuspiciousMacroSum",t:"Bool",comp:true},
+    {n:"hasMeaningfulNutritionData",t:"Bool",comp:true},
+  ]},
+  {id:"ProductNutrientLevels",g:"product",kind:"struct",fields:[
+    {n:"fat",t:"String?",note:"low/moderate/high"},{n:"saturatedFat",t:"String?"},{n:"sugars",t:"String?"},{n:"salt",t:"String?"},
+  ]},
+  {id:"RawIngredient",g:"product",kind:"struct · rekursiv",fields:[
+    {n:"id",t:"String?"},{n:"text",t:"String?"},{n:"percent",t:"Double?"},{n:"percentEstimate",t:"Double?"},
+    {n:"percentMin",t:"Double?"},{n:"percentMax",t:"Double?"},{n:"vegan",t:"String?"},{n:"vegetarian",t:"String?"},
+    {n:"fromPalmOil",t:"String?"},{n:"ingredients",t:"[RawIngredient]?",note:"rekursiv"},
+  ]},
+  {id:"ProductPackaging",g:"product",kind:"struct",fields:[
+    {n:"material",t:"String?"},{n:"shape",t:"String?"},{n:"recycling",t:"String?"},
+    {n:"weightMeasured",t:"Double?"},{n:"numberOfUnits",t:"Int?"},{n:"quantityPerUnit",t:"String?"},
+    {n:"foodContact",t:"Int?"},{n:"nonRecyclableAndNonBiodegradable",t:"String?"},
+    {n:"environmentalScoreMaterialScore",t:"Int?"},
+  ]},
+
+  // ── INGREDIENTS ───────────────────────────────────────────────────
+  {id:"ProductIngredient",g:"product",kind:"enum · 2 cases",
+   fields:[{n:"id",t:"String",comp:true},{n:"displayName",t:"String",comp:true},{n:"isTraceable",t:"Bool",comp:true}],
+   cases:[".subProduct(SubProductIngredient)",".chemical(ChemicalIngredient)"]},
+  {id:"SubProductIngredient",g:"product",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"barcode",t:"String",note:"→ GET /api/v1/trace/{barcode}"},
+    {n:"batchId",t:"String?"},{n:"name",t:"String"},{n:"description",t:"String?"},
+    {n:"category",t:"SubProductCategory"},{n:"percentageInProduct",t:"Double?"},
+    {n:"originCountry",t:"String?"},{n:"originRegion",t:"String?"},
+    {n:"supplierName",t:"String?"},{n:"supplierCountry",t:"String?"},{n:"imageUrl",t:"String?"},
+    {n:"certifications",t:"[TomapoCertification]"},
+    {n:"traceData",t:"TomapoResponse?",note:"nil=nicht trackbar · rekursiv"},
+    {n:"isTraceable",t:"Bool",comp:true},{n:"displayOrigin",t:"String?",comp:true},
+  ]},
+  {id:"ChemicalIngredient",g:"product",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"eNumber",t:"String?",note:"E471…"},{n:"name",t:"String"},
+    {n:"description",t:"String?"},{n:"category",t:"ChemicalIngredientCategory"},{n:"function_",t:"ChemicalFunction"},
+    {n:"percentageInProduct",t:"Double?"},{n:"origin",t:"ChemicalOrigin"},{n:"isSynthetic",t:"Bool"},
+    {n:"euRegulatoryStatus",t:"EUChemicalStatus"},{n:"healthAssessment",t:"ChemicalHealthAssessment"},
+    {n:"healthNotes",t:"String?"},{n:"sensitiveGroups",t:"[String]"},
+    {n:"acceptableDailyIntakeKgBw",t:"Double?"},{n:"maxAllowedMgPerKg",t:"Double?"},
+    {n:"actualMgPerKg",t:"Double?"},{n:"efsaEvaluationUrl",t:"String?"},{n:"allowedInOrganic",t:"Bool"},
+    {n:"displayName",t:"String",comp:true},{n:"apiIdentifier",t:"String",comp:true},
+  ]},
+
+  // ── ENVIRONMENT ───────────────────────────────────────────────────
+  {id:"TomapoEnvironmentSummary",g:"core",kind:"struct",fields:[
+    {n:"co2ByPhase",t:"CO2ByPhase"},{n:"co2TotalKgPerKg",t:"Double?"},{n:"ecoscoreGrade",t:"String?"},{n:"ecoscoreScore",t:"Int?"},
+    {n:"waterFootprintLiterPerKg",t:"Double?"},{n:"waterStressScore",t:"Double?"},
+    {n:"forestFootprintM2PerKg",t:"Double?"},{n:"forestFootprintGrade",t:"String?"},{n:"deforestationRisk",t:"Double?"},
+    {n:"transportEmissionsGramsCo2",t:"Double?"},{n:"totalTransportDistanceKm",t:"Double?"},{n:"transportLegCount",t:"Int?"},
+    {n:"packagingCo2Kg",t:"Double?"},{n:"packagingScore",t:"Int?"},{n:"recyclablePackagingPercent",t:"Double?"},
+    {n:"threatenedSpeciesRisk",t:"ThreatenedSpeciesRisk?"},{n:"productionSystemBonus",t:"Int?"},{n:"originEpiScore",t:"Int?"},
+  ]},
+  {id:"CO2ByPhase",g:"core",kind:"struct",fields:[
+    {n:"agriculture",t:"Double?"},{n:"processing",t:"Double?"},{n:"transportation",t:"Double?"},
+    {n:"packaging",t:"Double?"},{n:"distribution",t:"Double?"},{n:"consumption",t:"Double?"},
+  ]},
+  {id:"ThreatenedSpeciesRisk",g:"core",kind:"struct",fields:[
+    {n:"ingredient",t:"String?"},{n:"ecoscorePenalty",t:"Int?"},{n:"explanation",t:"String?"},
+  ]},
+  {id:"TomapoCertification",g:"core",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"type",t:"CertificationType"},{n:"name",t:"String"},{n:"issuingBody",t:"String?"},
+    {n:"certificateNumber",t:"String?"},{n:"validFrom",t:"Date?"},{n:"validUntil",t:"Date?"},
+    {n:"logoUrl",t:"String?"},{n:"verificationUrl",t:"String?"},{n:"scope",t:"CertificationScope"},
+    {n:"source",t:"CertificationSource"},{n:"offLabelTag",t:"String?"},
+    {n:"isCurrentlyValid",t:"Bool",comp:true},
+  ]},
+
+  // ── ALERTS ────────────────────────────────────────────────────────
+  {id:"TomapoProductAlert",g:"alert",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"barcode",t:"String"},{n:"batchId",t:"String?"},
+    {n:"source",t:"AlertSource"},{n:"category",t:"AlertCategory"},{n:"severity",t:"AlertSeverity"},
+    {n:"title",t:"String"},{n:"description",t:"String"},{n:"actionRequired",t:"String?"},
+    {n:"referenceId",t:"String?"},{n:"moreInfoUrl",t:"String?"},
+    {n:"authorId",t:"String?"},{n:"authorNickname",t:"String?"},
+    {n:"authorAvatarUrl",t:"String?",note:"User-Avatar"},{n:"authorLogoUrl",t:"String?",note:"Firmen-Logo"},
+    {n:"status",t:"AlertStatus"},{n:"confirmationCount",t:"Int"},{n:"rejectionCount",t:"Int"},
+    {n:"createdAt",t:"Date"},{n:"updatedAt",t:"Date"},{n:"expiresAt",t:"Date?"},
+    {n:"isActive",t:"Bool",comp:true},{n:"isFromUser",t:"Bool",comp:true},
+    {n:"isOwnUserReport",t:"Bool",comp:true},{n:"isOfficial",t:"Bool",comp:true},
+    {n:"isRecall",t:"Bool",comp:true},{n:"displayAuthor",t:"String",comp:true},
+  ]},
+
+  // ── STATION ───────────────────────────────────────────────────────
+  {id:"TomapoStation",g:"station",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"type",t:"TomapoStationType"},{n:"status",t:"TomapoStationStatus"},
+    {n:"title",t:"String"},{n:"subtitle",t:"String?"},{n:"location",t:"TomapoLocation?"},
+    {n:"startedAt",t:"Date?"},{n:"completedAt",t:"Date?"},{n:"durationHours",t:"Double?"},
+    {n:"qualityChecks",t:"[TomapoQualityCheck]"},{n:"certificationIds",t:"[String]"},
+    {n:"co2KgPerKg",t:"Double?",note:"Shortcut"},{n:"environmentSummary",t:"TomapoEnvironmentSummary?"},
+    {n:"detail",t:"TomapoStationDetail"},{n:"isVerified",t:"Bool"},{n:"verifiedBy",t:"String?"},{n:"notes",t:"String?"},
+    {n:"wasRefrigerated",t:"Bool",cold:true},{n:"refrigerationTemperatureCelsius",t:"Double?",cold:true},
+    {n:"refrigerationLabel",t:"String",comp:true,cold:true},
+  ]},
+  {id:"TomapoLocation",g:"station",kind:"struct",fields:[
+    {n:"name",t:"String?"},{n:"country",t:"String?",note:"ISO"},{n:"region",t:"String?"},
+    {n:"city",t:"String?"},{n:"address",t:"String?"},{n:"latitude",t:"Double?"},{n:"longitude",t:"Double?"},
+    {n:"embCode",t:"String?"},{n:"gln",t:"String?"},
+  ]},
+  {id:"TomapoStationDetail",g:"station",kind:"enum · 12 cases",
+   cases:[".farming",".fishing",".harvest",".processing",".packaging",".storage",".coldStorage",".transport",".laboratory",".distribution",".retail",".generic"]},
+  {id:"FarmingDetail",g:"station",kind:"struct",fields:[
+    {n:"farmName",t:"String?"},{n:"farmingMethod",t:"FarmingMethod"},{n:"cropYear",t:"Int?"},
+    {n:"animalSpecies",t:"String?"},{n:"husbandrySystem",t:"HusbandrySystem?"},{n:"areaHectares",t:"Double?"},
+    {n:"fertilizerTypes",t:"[FertilizerType]"},{n:"pesticideTypes",t:"[String]"},
+    {n:"fieldCoordinates",t:"[FieldCoordinate]"},{n:"irrigationType",t:"IrrigationType?"},
+    {n:"soilType",t:"String?"},{n:"plantingDate",t:"Date?"},{n:"expectedHarvestStart",t:"Date?"},{n:"expectedHarvestEnd",t:"Date?"},
+  ]},
+  {id:"FishingDetail",g:"station",kind:"struct",fields:[
+    {n:"method",t:"FishingMethod"},{n:"catchArea",t:"String?",note:"FAO"},{n:"vessel",t:"String?"},{n:"vesselId",t:"String?",note:"IMO"},
+    {n:"catchDate",t:"Date?"},{n:"isMscCertified",t:"Bool"},{n:"isAscCertified",t:"Bool"},{n:"bycatchInfo",t:"String?"},
+  ]},
+  {id:"HarvestDetail",g:"station",kind:"struct",fields:[
+    {n:"method",t:"HarvestMethod"},{n:"harvestDate",t:"Date?"},{n:"gradeAfterHarvest",t:"String?"},
+    {n:"yieldPercent",t:"Double?"},{n:"harvestTemperatureCelsius",t:"Double?"},
+    {n:"isManual",t:"Bool"},{n:"workerCount",t:"Int?"},{n:"immediatelyPrecooled",t:"Bool",cold:true},
+  ]},
+  {id:"ProcessingDetail",g:"station",kind:"struct",fields:[
+    {n:"facilityName",t:"String?"},{n:"facilityEmbCode",t:"String?"},{n:"processTypes",t:"[ProcessType]"},
+    {n:"processingTemperatureCelsius",t:"Double?"},{n:"pasteurization",t:"PasteurizationDetail?"},
+    {n:"sterilization",t:"SterilizationDetail?"},{n:"additivesAdded",t:"[String]"},
+    {n:"isHaccpCertified",t:"Bool"},{n:"foodSafetyStandard",t:"FoodSafetyStandard?"},{n:"batchSizeKg",t:"Double?"},
+  ]},
+  {id:"PasteurizationDetail",g:"station",kind:"struct",fields:[
+    {n:"temperatureCelsius",t:"Double"},{n:"durationSeconds",t:"Int"},{n:"method",t:"PasteurizationMethod"},
+  ]},
+  {id:"SterilizationDetail",g:"station",kind:"struct",fields:[
+    {n:"temperatureCelsius",t:"Double"},{n:"durationMinutes",t:"Int"},{n:"method",t:"String?"},
+  ]},
+  {id:"PackagingDetail",g:"station",kind:"struct",fields:[
+    {n:"facilityName",t:"String?"},{n:"materials",t:"[PackagingMaterialDetail]"},
+    {n:"modifiedAtmosphere",t:"ModifiedAtmosphereDetail?"},{n:"isVacuumPacked",t:"Bool"},
+    {n:"isRecyclable",t:"Bool"},{n:"totalPackagingWeightGrams",t:"Double?"},
+    {n:"labelLanguages",t:"[String]"},{n:"expirationDate",t:"Date?"},{n:"batchCodeOnPackaging",t:"String?"},
+  ]},
+  {id:"PackagingMaterialDetail",g:"station",kind:"struct",fields:[
+    {n:"material",t:"String"},{n:"shape",t:"String?"},{n:"weightGrams",t:"Double?"},
+    {n:"isRecyclable",t:"Bool"},{n:"recyclingCode",t:"String?"},{n:"isFoodContact",t:"Bool"},
+  ]},
+  {id:"ModifiedAtmosphereDetail",g:"station",kind:"struct",fields:[
+    {n:"oxygenPercent",t:"Double?"},{n:"co2Percent",t:"Double?"},{n:"nitrogenPercent",t:"Double?"},
+  ]},
+  {id:"StorageDetail",g:"station",kind:"struct",fields:[
+    {n:"facilityName",t:"String?"},{n:"facilityType",t:"StorageFacilityType"},{n:"storageDurationHours",t:"Double?"},
+    {n:"averageTemperatureCelsius",t:"Double?"},{n:"humidityPercent",t:"Double?"},
+    {n:"lightCondition",t:"LightCondition?"},{n:"maxDurationExceeded",t:"Bool"},{n:"ripeningDetail",t:"RipeningDetail?"},
+  ]},
+  {id:"RipeningDetail",g:"station",kind:"struct",fields:[
+    {n:"ripeningMethod",t:"RipeningMethod"},{n:"targetDurationDays",t:"Int?"},{n:"actualDurationDays",t:"Int?"},{n:"ripeningAgentUsed",t:"String?"},
+  ]},
+  {id:"TransportDetail",g:"station",kind:"struct",fields:[
+    {n:"mode",t:"TransportMode"},{n:"carrierName",t:"String?"},{n:"trackingId",t:"String?"},
+    {n:"originLocation",t:"TomapoLocation?"},{n:"destinationLocation",t:"TomapoLocation?"},
+    {n:"distanceKm",t:"Double?"},{n:"isRefrigerated",t:"Bool",cold:true},{n:"coldStorageDetail",t:"ColdStorageDetail?",cold:true},
+    {n:"co2EmissionsKg",t:"Double?"},{n:"vehicleType",t:"String?"},{n:"fuelType",t:"FuelType?"},
+    {n:"scheduledArrival",t:"Date?"},{n:"actualArrival",t:"Date?"},{n:"delayReasons",t:"[String]"},
+  ]},
+  {id:"DistributionDetail",g:"station",kind:"struct",fields:[
+    {n:"centerName",t:"String?"},{n:"centerType",t:"DistributionCenterType"},
+    {n:"inboundDate",t:"Date?"},{n:"outboundDate",t:"Date?"},{n:"handlingCount",t:"Int?"},
+    {n:"customsCleared",t:"Bool"},{n:"customsClearanceDate",t:"Date?"},
+    {n:"importInspectionPassed",t:"Bool?"},{n:"inspectedBy",t:"String?"},
+  ]},
+  {id:"RetailDetail",g:"station",kind:"struct",fields:[
+    {n:"storeName",t:"String?"},{n:"storeChain",t:"String?"},{n:"storeGln",t:"String?"},
+    {n:"displayType",t:"RetailDisplayType"},{n:"displayTemperatureCelsius",t:"Double?",cold:true},
+    {n:"firstOnShelfDate",t:"Date?"},{n:"bestBeforeDate",t:"Date?"},{n:"priceChf",t:"Double?"},
+  ]},
+  {id:"LaboratoryDetail",g:"quality",kind:"struct",fields:[
+    {n:"laboratoryName",t:"String?"},{n:"accreditationNumber",t:"String?"},{n:"accreditationBody",t:"String?"},
+    {n:"isIso17025Accredited",t:"Bool"},{n:"laboratoryType",t:"LaboratoryType"},{n:"location",t:"TomapoLocation?"},
+    {n:"sampleId",t:"String?"},{n:"samplingMethod",t:"SamplingMethod"},{n:"sampledBy",t:"String?"},
+    {n:"sampledAt",t:"Date?"},{n:"sampleWeightGrams",t:"Double?"},{n:"sampleMatrix",t:"String?"},
+    {n:"batchId",t:"String?"},{n:"sampleTransportedCooled",t:"Bool",cold:true},{n:"sampleArrivalTemperatureCelsius",t:"Double?",cold:true},
+    {n:"sampleReceivedAt",t:"Date?"},{n:"analysisStartedAt",t:"Date?"},{n:"analysisCompletedAt",t:"Date?"},
+    {n:"testMethods",t:"[LaboratoryTestMethod]"},{n:"microbiologicalResults",t:"[MicrobiologicalResult]"},
+    {n:"chemicalResults",t:"[ChemicalResiduResult]"},{n:"nutritionalAnalysis",t:"MeasuredNutritionalValues?"},
+    {n:"physicalResults",t:"[PhysicalTestResult]"},{n:"allergenResults",t:"[AllergenTestResult]"},
+    {n:"authenticityResults",t:"[AuthenticityTestResult]"},
+    {n:"overallVerdict",t:"LaboratoryVerdict"},{n:"legalLimitsExceeded",t:"Bool"},{n:"exceedanceCount",t:"Int"},
+    {n:"recommendation",t:"LaboratoryRecommendation?"},{n:"reportNumber",t:"String?"},
+    {n:"reportUrl",t:"String?"},{n:"signedBy",t:"String?"},{n:"reportIssuedAt",t:"Date?"},
+  ]},
+  {id:"FieldCoordinate",g:"station",kind:"struct",fields:[{n:"latitude",t:"Double"},{n:"longitude",t:"Double"}]},
+  {id:"GenericStationDetail",g:"station",kind:"struct",fields:[{n:"description",t:"String?"},{n:"operatorName",t:"String?"}]},
+
+  // ── COLD CHAIN ────────────────────────────────────────────────────
+  {id:"TomapoColdChainSummary",g:"cold",kind:"struct",fields:[
+    {n:"isIntact",t:"Bool",cold:true},{n:"refrigeratedStationCount",t:"Int",cold:true},
+    {n:"unrefrigeratedStationCount",t:"Int",cold:true},{n:"lowestTemperatureCelsius",t:"Double?",cold:true},
+    {n:"highestTemperatureCelsius",t:"Double?",cold:true},{n:"hadColdChainBreak",t:"Bool",cold:true},
+    {n:"coldChainBreakCount",t:"Int",cold:true},{n:"totalBreakDurationMinutes",t:"Int?",cold:true},
+    {n:"totalRefrigeratedTransportHours",t:"Double?",cold:true},{n:"summaryText",t:"String?",cold:true},
+  ]},
+  {id:"ColdStorageDetail",g:"cold",kind:"struct",fields:[
+    {n:"facilityName",t:"String?"},{n:"targetTemperatureCelsius",t:"Double",cold:true},
+    {n:"minActualTemperatureCelsius",t:"Double?",cold:true},{n:"maxActualTemperatureCelsius",t:"Double?",cold:true},
+    {n:"avgActualTemperatureCelsius",t:"Double?",cold:true},{n:"coldChainBroken",t:"Bool",cold:true},
+    {n:"coldChainBreaks",t:"[ColdChainBreak]",cold:true},{n:"sensorId",t:"String?"},{n:"lastSensorReading",t:"SensorReading?"},
+  ]},
+  {id:"ColdChainBreak",g:"cold",kind:"struct",fields:[
+    {n:"occurredAt",t:"Date",cold:true},{n:"durationMinutes",t:"Int",cold:true},
+    {n:"maxTemperatureReached",t:"Double",cold:true},{n:"location",t:"String?"},{n:"cause",t:"String?"},
+  ]},
+  {id:"SensorReading",g:"cold",kind:"struct",fields:[
+    {n:"timestamp",t:"Date",cold:true},{n:"temperatureCelsius",t:"Double",cold:true},
+    {n:"humidity",t:"Double?",cold:true},{n:"isWithinRange",t:"Bool",cold:true},
+  ]},
+
+  // ── QUALITY CHECKS ────────────────────────────────────────────────
+  {id:"TomapoQualityCheck",g:"quality",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"type",t:"QualityCheckType"},{n:"status",t:"QualityCheckStatus"},
+    {n:"performedAt",t:"Date?"},{n:"performedBy",t:"String?"},{n:"accreditationNumber",t:"String?"},
+    {n:"reportNumber",t:"String?"},{n:"resultSummary",t:"String?"},{n:"detail",t:"QualityCheckDetail"},
+    {n:"nextCheckDue",t:"Date?"},{n:"isMandatory",t:"Bool"},
+  ]},
+  {id:"QualityCheckDetail",g:"quality",kind:"enum · 9 cases",
+   cases:[".temperature",".microbiological",".chemical",".nutritional",".packaging",".visual",".weight",".certification",".generic"]},
+  {id:"TemperatureCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"measuredCelsius",t:"Double",cold:true},{n:"minAllowedCelsius",t:"Double",cold:true},
+    {n:"maxAllowedCelsius",t:"Double",cold:true},{n:"isWithinRange",t:"Bool",cold:true},
+    {n:"sensorId",t:"String?"},{n:"log",t:"[SensorReading]",cold:true},
+  ]},
+  {id:"MicrobiologicalCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"pathogensTested",t:"[PathogenResult]"},{n:"totalBacterialCount",t:"BacterialCountResult?"},
+    {n:"laboratoryName",t:"String?"},{n:"iso17025Accredited",t:"Bool"},
+  ]},
+  {id:"PathogenResult",g:"quality",kind:"struct",fields:[
+    {n:"pathogen",t:"String",note:"Salmonella…"},{n:"detected",t:"Bool"},{n:"cfu",t:"Double?"},
+    {n:"limitCfu",t:"Double?"},{n:"limitExceeded",t:"Bool"},
+  ]},
+  {id:"BacterialCountResult",g:"quality",kind:"struct",fields:[
+    {n:"totalCfu",t:"Double"},{n:"acceptableLimit",t:"Double"},{n:"isAcceptable",t:"Bool"},
+  ]},
+  {id:"ChemicalCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"substancesTested",t:"[ChemicalSubstanceResult]"},{n:"laboratoryName",t:"String?"},{n:"testMethod",t:"String?"},
+  ]},
+  {id:"ChemicalSubstanceResult",g:"quality",kind:"struct",fields:[
+    {n:"substance",t:"String"},{n:"category",t:"ChemicalCategory"},{n:"measuredMgPerKg",t:"Double?"},
+    {n:"limitMgPerKg",t:"Double?"},{n:"limitExceeded",t:"Bool"},{n:"unit",t:"String"},
+  ]},
+  {id:"NutritionalCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"energyKcal",t:"Double?"},{n:"fatG",t:"Double?"},{n:"saturatedFatG",t:"Double?"},
+    {n:"carbohydratesG",t:"Double?"},{n:"sugarsG",t:"Double?"},{n:"fiberG",t:"Double?"},
+    {n:"proteinsG",t:"Double?"},{n:"saltG",t:"Double?"},
+    {n:"deviationFromLabelPercent",t:"Double?"},{n:"deviationAcceptable",t:"Bool"},
+  ]},
+  {id:"PackagingIntegrityDetail",g:"quality",kind:"struct",fields:[
+    {n:"isSealed",t:"Bool"},{n:"isLeaking",t:"Bool"},{n:"vacuumIntact",t:"Bool?"},
+    {n:"mapGasCompositionCorrect",t:"Bool?"},{n:"labelingCorrect",t:"Bool"},
+    {n:"barcodeReadable",t:"Bool"},{n:"fillWeightCorrect",t:"Bool"},{n:"defectsFound",t:"[String]"},
+  ]},
+  {id:"VisualInspectionDetail",g:"quality",kind:"struct",fields:[
+    {n:"colorOk",t:"Bool"},{n:"shapeOk",t:"Bool"},{n:"surfaceOk",t:"Bool"},
+    {n:"moldDetected",t:"Bool"},{n:"foreignBodyDetected",t:"Bool"},{n:"gradeAssigned",t:"String?"},
+    {n:"rejectionRate",t:"Double?"},{n:"defectsFound",t:"[String]"},
+  ]},
+  {id:"WeightCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"targetWeightG",t:"Double"},{n:"measuredWeightG",t:"Double"},{n:"tolerancePercent",t:"Double"},
+    {n:"isWithinTolerance",t:"Bool"},{n:"sampleSize",t:"Int"},
+  ]},
+  {id:"CertificationAuditDetail",g:"quality",kind:"struct",fields:[
+    {n:"certificationBody",t:"String"},{n:"standardAudited",t:"String"},{n:"auditType",t:"AuditType"},
+    {n:"score",t:"Double?"},{n:"nonConformities",t:"[NonConformity]"},{n:"nextAuditDate",t:"Date?"},{n:"certificateValidUntil",t:"Date?"},
+  ]},
+  {id:"NonConformity",g:"quality",kind:"struct",fields:[
+    {n:"severity",t:"NonConformitySeverity"},{n:"description",t:"String"},{n:"correctionDeadline",t:"Date?"},{n:"corrected",t:"Bool"},
+  ]},
+  {id:"GenericCheckDetail",g:"quality",kind:"struct",fields:[
+    {n:"description",t:"String?"},{n:"measuredValue",t:"String?"},{n:"expectedValue",t:"String?"},{n:"unit",t:"String?"},
+  ]},
+  {id:"LaboratoryTestMethod",g:"quality",kind:"struct",fields:[
+    {n:"standardName",t:"String"},{n:"technique",t:"AnalyticalTechnique"},{n:"targetParameter",t:"String"},
+    {n:"detectionLimitValue",t:"Double?"},{n:"detectionLimitUnit",t:"String?"},
+  ]},
+  {id:"MicrobiologicalResult",g:"quality",kind:"struct",fields:[
+    {n:"pathogen",t:"String"},{n:"testMethod",t:"String"},{n:"detected",t:"Bool"},
+    {n:"cfuPerGram",t:"Double?"},{n:"euLimitCfuPerGram",t:"Double?"},{n:"limitExceeded",t:"Bool"},
+    {n:"analysisDurationHours",t:"Int?"},{n:"status",t:"MicrobiologicalStatus"},
+  ]},
+  {id:"ChemicalResiduResult",g:"quality",kind:"struct",fields:[
+    {n:"substanceName",t:"String"},{n:"category",t:"ChemicalResiduCategory"},{n:"measuredValue",t:"Double?"},
+    {n:"unit",t:"String"},{n:"mrlValue",t:"Double?"},{n:"mrlUnit",t:"String?"},{n:"mrlExceeded",t:"Bool"},
+    {n:"method",t:"String?"},{n:"loqValue",t:"Double?"},{n:"lodValue",t:"Double?"},{n:"belowLod",t:"Bool"},{n:"status",t:"ResiduStatus"},
+  ]},
+  {id:"MeasuredNutritionalValues",g:"quality",kind:"struct",fields:[
+    {n:"energyKcal",t:"Double?"},{n:"fatG",t:"Double?"},{n:"saturatedFatG",t:"Double?"},
+    {n:"carbohydratesG",t:"Double?"},{n:"sugarsG",t:"Double?"},{n:"fiberG",t:"Double?"},
+    {n:"proteinsG",t:"Double?"},{n:"saltG",t:"Double?"},{n:"moisturePercent",t:"Double?"},{n:"ashG",t:"Double?"},
+    {n:"deviationFromDeclarationPercent",t:"Double?"},{n:"isWithinEuTolerance",t:"Bool"},
+  ]},
+  {id:"PhysicalTestResult",g:"quality",kind:"struct",fields:[
+    {n:"parameter",t:"PhysicalParameter"},{n:"measuredValue",t:"Double"},{n:"unit",t:"String"},
+    {n:"minAllowed",t:"Double?"},{n:"maxAllowed",t:"Double?"},{n:"isWithinSpec",t:"Bool"},{n:"notes",t:"String?"},
+  ]},
+  {id:"AllergenTestResult",g:"quality",kind:"struct",fields:[
+    {n:"allergen",t:"String"},{n:"isEuMajorAllergen",t:"Bool"},{n:"method",t:"AllergenTestMethod"},
+    {n:"detected",t:"Bool"},{n:"measuredMgPerKg",t:"Double?"},{n:"declarationThresholdMgPerKg",t:"Double?"},
+    {n:"declarationRequired",t:"Bool"},{n:"declarationOnLabelCorrect",t:"Bool"},
+  ]},
+  {id:"AuthenticityTestResult",g:"quality",kind:"struct",fields:[
+    {n:"testType",t:"AuthenticityTestType"},{n:"claim",t:"String"},{n:"isAuthentic",t:"Bool"},
+    {n:"method",t:"String?"},{n:"confidencePercent",t:"Double?"},{n:"notes",t:"String?"},
+  ]},
+
+  // ── USER LAYER ────────────────────────────────────────────────────
+  {id:"TomapoUser",g:"user",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"fullName",t:"String"},{n:"email",t:"String"},{n:"nickname",t:"String"},{n:"avatarUrl",t:"String?"},
+    {n:"messages",t:"[TomapoUserMessageSummary]",note:"★ Meldungshistorie"},
+    {n:"createdAt",t:"Date"},{n:"updatedAt",t:"Date"},{n:"isSyncedWithBackend",t:"Bool"},
+    {n:"firstName",t:"String",comp:true},{n:"initials",t:"String",comp:true},
+    {n:"messageCount",t:"Int",comp:true},{n:"pendingMessageCount",t:"Int",comp:true},
+  ]},
+  {id:"TomapoUserStore",g:"user",kind:"@MainActor class",fields:[
+    {n:"currentUser",t:"TomapoUser?",note:"@Published"},{n:"hasUser",t:"Bool",comp:true},
+    {n:"createUser(fullName:email:nickname:)",t:"func"},{n:"updateUser(...)",t:"func"},{n:"deleteUser()",t:"func"},
+    {n:"addMessageSummary(...)",t:"func"},{n:"updateMessageStatus(messageId:status:)",t:"func"},{n:"removeMessageSummary(messageId:)",t:"func"},
+  ]},
+  {id:"TomapoUserMessageSummary",g:"user",kind:"struct",fields:[
+    {n:"id",t:"String",note:"=TomapoUserMessage.id"},{n:"barcode",t:"String"},{n:"batchId",t:"String?"},
+    {n:"productName",t:"String?"},{n:"productBrand",t:"String?"},{n:"productCategoryTag",t:"String?"},
+    {n:"messageTitle",t:"String"},{n:"messageCategory",t:"AlertCategory"},{n:"messageSeverity",t:"AlertSeverity"},
+    {n:"submissionStatus",t:"MessageSubmissionStatus"},{n:"createdAt",t:"Date"},{n:"updatedAt",t:"Date"},
+    {n:"displayProductName",t:"String",comp:true},{n:"canRefreshProductData",t:"Bool",comp:true},
+  ]},
+  {id:"TomapoUserMessage",g:"user",kind:"struct",fields:[
+    {n:"id",t:"String"},{n:"authorId",t:"String",note:"→ TomapoUser.id"},{n:"authorNickname",t:"String"},
+    {n:"productSnapshot",t:"TomapoMessageProductSnapshot",note:"★ Produkt+API-Keys"},
+    {n:"category",t:"AlertCategory"},{n:"title",t:"String"},{n:"body",t:"String"},{n:"severity",t:"AlertSeverity"},
+    {n:"submissionStatus",t:"MessageSubmissionStatus"},{n:"linkedAlertId",t:"String?",note:"→ TomapoProductAlert.id"},
+    {n:"createdAt",t:"Date"},{n:"updatedAt",t:"Date"},
+    {n:"barcode",t:"String",comp:true},{n:"batchId",t:"String?",comp:true},
+    {n:"displayProductName",t:"String",comp:true},{n:"displayAuthor",t:"String",comp:true},
+    {n:"displayBodyPreview",t:"String",comp:true},{n:"isSubmittedToBackend",t:"Bool",comp:true},
+  ]},
+  {id:"TomapoMessageProductSnapshot",g:"user",kind:"struct",fields:[
+    {n:"barcode",t:"String",note:"→ GET /api/v1/trace/{barcode}"},{n:"batchId",t:"String?"},
+    {n:"productName",t:"String?"},{n:"brand",t:"String?"},{n:"quantity",t:"String?"},
+    {n:"imageUrl",t:"String?"},{n:"nutriscoreGrade",t:"String?"},{n:"ecoscoreGrade",t:"String?"},
+    {n:"categoriesTags",t:"[String]?"},{n:"scannedAt",t:"Date"},{n:"scannedAtStoreName",t:"String?"},
+    {n:"displayName",t:"String",comp:true},{n:"displaySubtitle",t:"String?",comp:true},
+    {n:"canReloadTrace",t:"Bool",comp:true},{n:"hasBatchContext",t:"Bool",comp:true},
+  ]},
+  {id:"TomapoUserMessageStore",g:"user",kind:"@MainActor class",fields:[
+    {n:"messages",t:"[TomapoUserMessage]",note:"@Published"},
+    {n:"add(authorId:authorNickname:productSnapshot:category:title:body:severity:)",t:"func"},
+    {n:"remove(_ message:)",t:"func"},{n:"updateStatus(id:status:linkedAlertId:)",t:"func"},
+    {n:"messages(for barcode:)",t:"→[Message]"},{n:"messages(forBatch:)",t:"→[Message]"},
+    {n:"messageCount(for barcode:)",t:"→ Int"},
+  ]},
+
+  // ── SCAN HISTORY ──────────────────────────────────────────────────
+  {id:"ScanHistoryEntry",g:"service",kind:"struct",fields:[
+    {n:"id",t:"UUID"},{n:"barcode",t:"String"},{n:"barcodeType",t:"String"},{n:"batchId",t:"String?"},
+    {n:"productName",t:"String?"},{n:"brand",t:"String?"},{n:"imageUrl",t:"String?"},
+    {n:"nutriscoreGrade",t:"String?"},{n:"ecoscoreGrade",t:"String?"},{n:"co2KgPerKg",t:"Double?",note:"gecacht"},
+    {n:"productStatus",t:"ProductStatus"},{n:"bestBeforeDate",t:"Date?"},{n:"scannedAt",t:"Date"},
+    {n:"displayName",t:"String",comp:true},{n:"canSubmitReport",t:"Bool",comp:true},
+  ]},
+  {id:"ScanHistoryStore",g:"service",kind:"@MainActor class",fields:[
+    {n:"entries",t:"[ScanHistoryEntry]",note:"@Published"},
+    {n:"add(barcode:barcodeType:batchId:...)",t:"func"},{n:"update(barcode:batchId:...)",t:"func"},
+    {n:"updateStatus(barcode:batchId:bestBeforeDate:hasActiveRecall:)",t:"func"},
+    {n:"remove(_ entry:)",t:"func"},{n:"clearAll()",t:"func"},
+    {n:"totalCo2KgPerKg",t:"Double",comp:true},{n:"co2InRange(from:to:)",t:"→ Double",comp:true},
+    {n:"recallEntries",t:"[ScanHistoryEntry]",comp:true},{n:"mhdWarningEntries",t:"[ScanHistoryEntry]",comp:true},
+  ]},
+  {id:"ScanResultViewModel",g:"service",kind:"@MainActor class",fields:[
+    {n:"state",t:"TomapoApiState",note:"@Published"},
+    {n:"loadProduct(barcode:barcodeType:store:)",t:"async func"},
+    {n:"isLoading",t:"Bool",comp:true},{n:"loadedProduct",t:"TomapoResponse?",comp:true},
+  ]},
+  {id:"TomapoService",g:"service",kind:"final class · singleton",fields:[
+    {n:"shared",t:"TomapoService",note:"static"},{n:"fetchProduct(barcode:)",t:"async → Result<TomapoResponse>"},
+    {n:"fetchProduct(barcode:batchId:)",t:"async → Result<TomapoResponse>"},{n:"fetchAlerts(barcode:)",t:"async → Result<[Alert]>"},
+    {n:"fetchChemical(identifier:)",t:"async → Result<ChemicalIngredient>"},{n:"submitAlert(_:)",t:"async → Result<TomapoProductAlert>"},
+  ]},
+
+  // ── ENUMS ─────────────────────────────────────────────────────────
+  {id:"TomapoApiState",g:"enum",kind:"enum",cases:["idle","loading","loaded(TomapoResponse)","notFound","error(TomapoApiError)"]},
+  {id:"TomapoApiError",g:"enum",kind:"enum",cases:["invalidBarcode","networkError(Error)","decodingError(Error)","serverError(Int)","timeout"]},
+  {id:"ProductStatus",g:"enum",kind:"enum",cases:["ok","mhdExpired","mhdSoonExpiring","recallActive","unknown"]},
+  {id:"AlertSource",g:"enum",kind:"enum",cases:["ownUser","official","government","user","community","system"]},
+  {id:"AlertCategory",g:"enum",kind:"enum",cases:["productRecall","batchRecall","foodSafety","allergenWarning","foreignObject","mold","qualityDefect","packagingDefect","labelingError","recipeChange","newCertification","productDiscontinued","generalInfo","dataQualityIssue"]},
+  {id:"AlertSeverity",g:"enum",kind:"enum · Comparable",cases:["info(0)","low(1)","medium(2)","high(3)","critical(4)"]},
+  {id:"AlertStatus",g:"enum",kind:"enum",cases:["pending","active","verified","rejected","resolved","expired"]},
+  {id:"MessageSubmissionStatus",g:"enum",kind:"enum",cases:["draft","submitted","published","rejected"]},
+  {id:"RecallSeverity",g:"enum",kind:"enum · legacy",cases:["none","advisory","warning","critical","unknown"]},
+  {id:"NutriScore",g:"enum",kind:"enum",cases:["a","b","c","d","e","notApplicable","unknown"]},
+  {id:"NovaGroup",g:"enum",kind:"enum",cases:["unprocessed(1)","culinaryIngredient(2)","processed(3)","ultraProcessed(4)","notComputable(0)"]},
+  {id:"DietStatus",g:"enum",kind:"enum",cases:["yes","no","maybe","unknown"]},
+  {id:"DataCompleteness",g:"enum",kind:"enum",cases:["full(≥0.85)","partial(0.40–0.85)","minimal(<0.40)"]},
+  {id:"NutrientLevel",g:"enum",kind:"enum",cases:["low","moderate","high","unknown"]},
+  {id:"TomapoStationType",g:"enum",kind:"enum · 34 cases",cases:["farming","fishing","harvest","sorting","processing","cleaning","cutting","cooking","fermenting","drying","freezing","packaging","labeling","sealing","storage","coldStorage","frozenStorage","ripening","aging","truckTransport","railTransport","shipTransport","airTransport","refrigeratedTruck","localDelivery","distribution","customsClearance","importInspection","retailStorage","retailDisplay","pointOfSale","qualityInspection","laboratoryTest","certificationCheck","veterinaryCheck","unknown"]},
+  {id:"TomapoStationStatus",g:"enum",kind:"enum",cases:["pending","active","completed","warning","failed","skipped","unknown"]},
+  {id:"QualityCheckType",g:"enum",kind:"enum · 40+ cases",cases:["visualInspection","weightCheck","temperatureLog","coldChainVerification","microbiologicalTest","salmonellaTest","listeriaTest","eColiTest","waterQualityTest","pesticideResidue","heavyMetalTest","allergenTest","antibioticTest","nutritionAnalysis","packagingIntegrity","labelingCompliance","carbonFootprintAudit","organicCertCheck","veterinaryInspection","haccp","foodSafetyAudit","other"]},
+  {id:"QualityCheckStatus",g:"enum",kind:"enum",cases:["passed","failed","warning","pending","inProgress","notApplicable","unknown"]},
+  {id:"SubProductCategory",g:"enum",kind:"enum",cases:["nuts","cocoa","grains","fruits","vegetables","legumes","oils","sugars","spices","herbs","fungi","dairy","meat","fish","eggs","honey","flour","concentrates","extracts","other"]},
+  {id:"ChemicalIngredientCategory",g:"enum",kind:"enum",cases:["preservative","colorant","antioxidant","emulsifier","thickener","stabilizer","flavourEnhancer","sweetener","acidityRegulator","flour_treatment","glazingAgent","humectant","modified_starch","flavouring","enzyme","other"]},
+  {id:"ChemicalFunction",g:"enum",kind:"enum",cases:["preserving","coloring","sweetening","emulsifying","thickening","stabilizing","flavouring","antioxidizing","acidifying","buffering","foaming","glazing","moistening","other"]},
+  {id:"ChemicalOrigin",g:"enum",kind:"enum",cases:["synthetic","nature_identical","natural","fermentation","mineral","unknown"]},
+  {id:"EUChemicalStatus",g:"enum",kind:"enum",cases:["approved","approvedWithAdi","underReview","restricted","banned","notListed"]},
+  {id:"ChemicalHealthAssessment",g:"enum",kind:"enum",cases:["safe","gras","caution","controversial","sensitiveOnly","avoid","unknown"]},
+  {id:"CertificationType",g:"enum",kind:"enum · 30+ cases",cases:["euOrganic","demeter","bioSuisse","naturland","fairtrade","rainforestAlliance","fsc","rspo","msc","asc","glutenFree","vegan","vegetarian","halal","kosher","nonGmo","pdo","pgi","ipSuisse","haccp","iso22000","ifs","brc","fssc22000","globalGap","animalWelfare","climateNeutral","carbonfootprint","other"]},
+  {id:"CertificationScope",g:"enum",kind:"enum",cases:["product","facility","company","ingredient","process"]},
+  {id:"CertificationSource",g:"enum",kind:"enum",cases:["openFoodFacts","manufacturer","certificationBody","government","thirdParty"]},
+  {id:"DataSourceType",g:"enum",kind:"enum",cases:["openFoodFacts","manufacturer","logistics","laboratory","certification_body","government","retailer","iot_sensor","blockchain"]},
+  {id:"DataSourceReliability",g:"enum",kind:"enum",cases:["verified","official","community","estimated","unknown"]},
+  {id:"LaboratoryType",g:"enum",kind:"enum",cases:["internalManufacturer","externalIndependent","governmentOfficial","universityResearch","certificationBody"]},
+  {id:"SamplingMethod",g:"enum",kind:"enum",cases:["random","representative","composite","targeted","officialControl","selfMonitoring","continuous","unknown"]},
+  {id:"AnalyticalTechnique",g:"enum",kind:"enum · 20",cases:["gcMs","lcMsMs","hplc","gfaas","icpMs","culturePlating","pcr","realTimePcr","elisa","flowCytometry","nirs","nmr","xrf","turbidimetry","sensoryPanel","texture","colorimetry","dnaFingerprint","isotope","other"]},
+  {id:"LaboratoryVerdict",g:"enum",kind:"enum",cases:["compliant","minorDeviation","majorDeviation","nonCompliant","unsafe","pending"]},
+  {id:"LaboratoryRecommendation",g:"enum",kind:"enum",cases:["releaseProduct","releaseWithRemarks","holdPendingInvestigation","recallBatch","destroyProduct","furtherTesting","notifyAuthorities"]},
+  {id:"MicrobiologicalStatus",g:"enum",kind:"enum",cases:["satisfactory","acceptable","unsatisfactory","unsafe"]},
+  {id:"ChemicalResiduCategory",g:"enum",kind:"enum · 15",cases:["pesticide","herbicide","fungicide","insecticide","heavyMetal","mycotoxin","antibiotic","hormone","nitrate","dioxin","pah","plasticizer","processingContaminant","environmentalContaminant","additive","other"]},
+  {id:"ResiduStatus",g:"enum",kind:"enum",cases:["notDetected","detected","mrlExceeded","criticalLevel"]},
+  {id:"PhysicalParameter",g:"enum",kind:"enum",cases:["phValue","waterActivity","brix","viscosity","turbidity","colorL","colorA","colorB","hardness","particleSize","density","fillWeight","headspace","foreignBodies","other"]},
+  {id:"AllergenTestMethod",g:"enum",kind:"enum",cases:["elisa","pcr","lcMsMs","lateralFlow","other"]},
+  {id:"AuthenticityTestType",g:"enum",kind:"enum",cases:["geographicOrigin","organicStatus","speciesId","adulteration","varietyId","vintageCertification","productionMethod","other"]},
+  {id:"AuditType",g:"enum",kind:"enum",cases:["announced","unannounced","remote","documentary"]},
+  {id:"NonConformitySeverity",g:"enum",kind:"enum",cases:["critical","major","minor"]},
+  {id:"FarmingMethod",g:"enum",kind:"enum",cases:["organic","biodynamic","conventional","integrated","regenerative","hydroponic","aquaponic","permaculture","urban_farming","unknown"]},
+  {id:"HusbandrySystem",g:"enum",kind:"enum",cases:["freeRange","organic","cageFree","battery","pastureRaised","aquaculture","wildCaught","unknown"]},
+  {id:"FertilizerType",g:"enum",kind:"enum",cases:["organic","synthetic","compost","manure","none"]},
+  {id:"IrrigationType",g:"enum",kind:"enum",cases:["drip","sprinkler","flood","rainFed","none"]},
+  {id:"FishingMethod",g:"enum",kind:"enum",cases:["wildCaught","aquaculture","lineCaught","netCaught","trawl","unknown"]},
+  {id:"HarvestMethod",g:"enum",kind:"enum",cases:["manual","mechanical","selective","slaughter","milking","shearing","unknown"]},
+  {id:"ProcessType",g:"enum",kind:"enum · 18",cases:["washing","peeling","cutting","mixing","cooking","pasteurization","sterilization","fermentation","smoking","salting","drying","freezing","pressing","extraction","filtration","homogenization","irradiation","grinding","unknown"]},
+  {id:"PasteurizationMethod",g:"enum",kind:"enum",cases:["htst","uht","ltlt","flash"]},
+  {id:"FoodSafetyStandard",g:"enum",kind:"enum",cases:["haccp","ifsFood","brcGs2","iso22000","sqf","fssc22000","globalGap","unknown"]},
+  {id:"StorageFacilityType",g:"enum",kind:"enum",cases:["warehouse","coldStore","freezer","ripeningCave","silo","winery","unknown"]},
+  {id:"LightCondition",g:"enum",kind:"enum",cases:["dark","dim","normal","uv_protected"]},
+  {id:"RipeningMethod",g:"enum",kind:"enum",cases:["natural","controlled_atmosphere","ethylene_gas","cave_aged","smoked","brined","unknown"]},
+  {id:"TransportMode",g:"enum",kind:"enum",cases:["truck","refrigeratedTruck","train","refrigeratedTrain","ship","refrigeratedShip","airplane","van","bicycle","drone","pipeline","unknown"]},
+  {id:"FuelType",g:"enum",kind:"enum",cases:["diesel","petrol","electric","hydrogen","lng","hvo","biodiesel","kerosene","heavyFuelOil","unknown"]},
+  {id:"DistributionCenterType",g:"enum",kind:"enum",cases:["regional_dc","national_dc","cross_dock","hub","port","airport","customs_facility","unknown"]},
+  {id:"RetailDisplayType",g:"enum",kind:"enum",cases:["ambient","chilled","frozen","bakery","meatCounter","fishCounter","unknown"]},
+  {id:"ChemicalCategory",g:"enum",kind:"enum",cases:["pesticide","heavyMetal","mycotoxin","antibiotic","hormone","nitrate","additive","allergen","contaminant","other"]},
+  ],
+
+  edges:[
+    // Core hub
+    {f:"TomapoResponse",t:"ProductNutriments",l:"nutriments"},
+    {f:"TomapoResponse",t:"ProductNutrientLevels",l:"nutrientLevels"},
+    {f:"TomapoResponse",t:"RawIngredient",l:"rawIngredients[]"},
+    {f:"TomapoResponse",t:"ProductPackaging",l:"packagings[]"},
+    {f:"TomapoResponse",t:"TomapoProductAlert",l:"alerts[]"},
+    {f:"TomapoResponse",t:"TomapoStation",l:"stations[]"},
+    {f:"TomapoResponse",t:"TomapoEnvironmentSummary",l:"environmentSummary"},
+    {f:"TomapoResponse",t:"TomapoCertification",l:"certifications[]"},
+    {f:"TomapoResponse",t:"TomapoTraceabilityScore",l:"traceabilityScore"},
+    {f:"TomapoResponse",t:"TomapoDataSource",l:"dataSources[]"},
+    {f:"TomapoResponse",t:"ProductIngredient",l:"ingredients[]"},
+    {f:"TomapoResponse",t:"TomapoColdChainSummary",l:"coldChainSummary"},
+    {f:"TomapoResponse",t:"TomapoRecallStatus",l:"recallStatus·computed"},
+    // Ingredients
+    {f:"ProductIngredient",t:"SubProductIngredient",l:".subProduct"},
+    {f:"ProductIngredient",t:"ChemicalIngredient",l:".chemical"},
+    {f:"SubProductIngredient",t:"TomapoResponse",l:"traceData? (rekursiv)"},
+    {f:"SubProductIngredient",t:"TomapoCertification",l:"certifications[]"},
+    // RawIngredient self-reference
+    {f:"RawIngredient",t:"RawIngredient",l:"ingredients[] rekursiv"},
+    // Environment
+    {f:"TomapoEnvironmentSummary",t:"CO2ByPhase",l:"co2ByPhase"},
+    {f:"TomapoEnvironmentSummary",t:"ThreatenedSpeciesRisk",l:"threatenedSpeciesRisk"},
+    // Station
+    {f:"TomapoStation",t:"TomapoLocation",l:"location"},
+    {f:"TomapoStation",t:"TomapoQualityCheck",l:"qualityChecks[]"},
+    {f:"TomapoStation",t:"TomapoEnvironmentSummary",l:"environmentSummary?"},
+    {f:"TomapoStation",t:"TomapoStationDetail",l:"detail"},
+    {f:"TomapoStation",t:"ColdStorageDetail",l:"🧊 via detail.coldStorage"},
+    // Station details
+    {f:"TomapoStationDetail",t:"FarmingDetail",l:".farming"},
+    {f:"TomapoStationDetail",t:"FishingDetail",l:".fishing"},
+    {f:"TomapoStationDetail",t:"HarvestDetail",l:".harvest"},
+    {f:"TomapoStationDetail",t:"ProcessingDetail",l:".processing"},
+    {f:"TomapoStationDetail",t:"PackagingDetail",l:".packaging"},
+    {f:"TomapoStationDetail",t:"StorageDetail",l:".storage"},
+    {f:"TomapoStationDetail",t:"ColdStorageDetail",l:".coldStorage"},
+    {f:"TomapoStationDetail",t:"TransportDetail",l:".transport"},
+    {f:"TomapoStationDetail",t:"LaboratoryDetail",l:".laboratory"},
+    {f:"TomapoStationDetail",t:"DistributionDetail",l:".distribution"},
+    {f:"TomapoStationDetail",t:"RetailDetail",l:".retail"},
+    {f:"TomapoStationDetail",t:"GenericStationDetail",l:".generic"},
+    // Sub-detail structs
+    {f:"ProcessingDetail",t:"PasteurizationDetail",l:"pasteurization"},
+    {f:"ProcessingDetail",t:"SterilizationDetail",l:"sterilization"},
+    {f:"PackagingDetail",t:"PackagingMaterialDetail",l:"materials[]"},
+    {f:"PackagingDetail",t:"ModifiedAtmosphereDetail",l:"modifiedAtmosphere"},
+    {f:"StorageDetail",t:"RipeningDetail",l:"ripeningDetail"},
+    {f:"TransportDetail",t:"ColdStorageDetail",l:"🧊 coldStorageDetail"},
+    {f:"TransportDetail",t:"TomapoLocation",l:"origin/dest"},
+    {f:"FarmingDetail",t:"FieldCoordinate",l:"fieldCoordinates[]"},
+    {f:"LaboratoryDetail",t:"TomapoLocation",l:"location"},
+    {f:"LaboratoryDetail",t:"LaboratoryTestMethod",l:"testMethods[]"},
+    {f:"LaboratoryDetail",t:"MicrobiologicalResult",l:"microbiologicalResults[]"},
+    {f:"LaboratoryDetail",t:"ChemicalResiduResult",l:"chemicalResults[]"},
+    {f:"LaboratoryDetail",t:"MeasuredNutritionalValues",l:"nutritionalAnalysis"},
+    {f:"LaboratoryDetail",t:"PhysicalTestResult",l:"physicalResults[]"},
+    {f:"LaboratoryDetail",t:"AllergenTestResult",l:"allergenResults[]"},
+    {f:"LaboratoryDetail",t:"AuthenticityTestResult",l:"authenticityResults[]"},
+    // Cold chain
+    {f:"ColdStorageDetail",t:"ColdChainBreak",l:"coldChainBreaks[]"},
+    {f:"ColdStorageDetail",t:"SensorReading",l:"lastSensorReading"},
+    {f:"TemperatureCheckDetail",t:"SensorReading",l:"log[]"},
+    // Quality checks
+    {f:"TomapoQualityCheck",t:"QualityCheckDetail",l:"detail"},
+    {f:"QualityCheckDetail",t:"TemperatureCheckDetail",l:".temperature"},
+    {f:"QualityCheckDetail",t:"MicrobiologicalCheckDetail",l:".microbiological"},
+    {f:"QualityCheckDetail",t:"ChemicalCheckDetail",l:".chemical"},
+    {f:"QualityCheckDetail",t:"NutritionalCheckDetail",l:".nutritional"},
+    {f:"QualityCheckDetail",t:"PackagingIntegrityDetail",l:".packaging"},
+    {f:"QualityCheckDetail",t:"VisualInspectionDetail",l:".visual"},
+    {f:"QualityCheckDetail",t:"WeightCheckDetail",l:".weight"},
+    {f:"QualityCheckDetail",t:"CertificationAuditDetail",l:".certification"},
+    {f:"QualityCheckDetail",t:"GenericCheckDetail",l:".generic"},
+    {f:"MicrobiologicalCheckDetail",t:"PathogenResult",l:"pathogensTested[]"},
+    {f:"MicrobiologicalCheckDetail",t:"BacterialCountResult",l:"totalBacterialCount"},
+    {f:"ChemicalCheckDetail",t:"ChemicalSubstanceResult",l:"substancesTested[]"},
+    {f:"CertificationAuditDetail",t:"NonConformity",l:"nonConformities[]"},
+    // User layer
+    {f:"TomapoUserStore",t:"TomapoUser",l:"currentUser"},
+    {f:"TomapoUser",t:"TomapoUserMessageSummary",l:"messages[]"},
+    {f:"TomapoUserMessageStore",t:"TomapoUserMessage",l:"messages[]"},
+    {f:"TomapoUserMessage",t:"TomapoMessageProductSnapshot",l:"productSnapshot"},
+    {f:"TomapoUserMessage",t:"TomapoProductAlert",l:"linkedAlertId→"},
+    {f:"TomapoUserMessageSummary",t:"TomapoUserMessage",l:"id·Referenz"},
+    // Service → model
+    {f:"TomapoService",t:"TomapoResponse",l:"fetchProduct()→"},
+    {f:"TomapoService",t:"TomapoProductAlert",l:"fetchAlerts()→"},
+    {f:"TomapoService",t:"ChemicalIngredient",l:"fetchChemical()→"},
+    {f:"ScanResultViewModel",t:"TomapoService",l:"ruft auf"},
+    {f:"ScanResultViewModel",t:"ScanHistoryStore",l:"store.add()"},
+    {f:"ScanHistoryStore",t:"ScanHistoryEntry",l:"entries[]"},
+  ]
+};
+console.log("Model v2: nodes="+MODEL.nodes.length+" edges="+MODEL.edges.length);
+
+
+
+// ── CONFIG ──────────────────────────────────────────────────────────
+const NW = 256;
+const GCOL = {
+  off:'#388bfd', bridge:'#8957e5', tomapo:'#3fb950',
+  cold:'#58c0fc', station:'#1D9E75', quality:'#BA7517',
+  user:'#D4537E', enum:'#D85A30'
+};
+const GLABEL = {
+  off:'Open Food Facts', bridge:'Bridge / App', tomapo:'Tomapo Core',
+  cold:'Kühlkette', station:'StationDetails', quality:'QualityChecks',
+  user:'User Layer', enum:'Enums'
+};
+
+// Zone layout: [col, row] in zone-grid
+const ZPOS = {
+  off:[0,0], bridge:[1,0], tomapo:[2,0], cold:[3,0],
+  station:[0,1], quality:[1,1], user:[2,1], enum:[3,1]
+};
+const NODE_H = 36, VGAP = 8, HGAP = 20;
+const ZONE_ROWS = 18;  // nodes per column before wrapping
+const ZONE_W = 2*(NW+HGAP) + 40;  // 2 sub-cols per zone
+const ZONE_H = ZONE_ROWS*(NODE_H+VGAP) + 64;
+const ZONE_GAP_X = 32, ZONE_GAP_Y = 40;
+
+// ── BUILD CONNECTIVITY MAP ──────────────────────────────────────────
+const connMap = {};  // id → [{dir:'out'|'in', edge, other}]
+MODEL.edges.forEach(e => {
+  if (!connMap[e.f]) connMap[e.f] = [];
+  if (!connMap[e.t]) connMap[e.t] = [];
+  connMap[e.f].push({dir:'out', label:e.l, other:e.t});
+  connMap[e.t].push({dir:'in',  label:e.l, other:e.f});
+});
+
+// ── COMPUTE POSITIONS ───────────────────────────────────────────────
+function computePositions() {
+  const cnt = {}, pos = {};
+  MODEL.nodes.forEach(n => {
+    const g = n.g;
+    cnt[g] = cnt[g] || 0;
+    const i = cnt[g]++;
+    const [zc, zr] = ZPOS[g] || [0,0];
+    const sc = Math.floor(i / ZONE_ROWS);   // sub-col within zone
+    const sr = i % ZONE_ROWS;               // row within sub-col
+    pos[n.id] = {
+      x: zc*(ZONE_W+ZONE_GAP_X) + sc*(NW+HGAP) + 20,
+      y: zr*(ZONE_H+ZONE_GAP_Y) + sr*(NODE_H+VGAP) + 54
+    };
+  });
+  return pos;
+}
+
+// ── STATE ────────────────────────────────────────────────────────────
+let positions = {};
+const nodeEls = {};
+let visGroups = new Set(MODEL.groups.map(g => g.id));
+let searchQ = '';
+let activeId = null;
+let scale=1, panX=0, panY=0;
+let dragging=false, lastMX=0, lastMY=0;
+
+// ── BUILD NODE ───────────────────────────────────────────────────────
+function buildNode(n) {
+  const p = positions[n.id];
+  const el = document.createElement('div');
+  el.className = `node g-${n.g}`;
+  el.id = 'n-' + n.id;
+  el.style.left = p.x + 'px';
+  el.style.top  = p.y + 'px';
+
+  const cc = (connMap[n.id] || []).length;
+  const badge = cc ? `<span class="nbadge" title="${cc} Verbindungen">${cc}</span>` : '';
+
+  let html = `<div class="nh">
+    <div class="na"></div>
+    <span class="ntitle">${n.id}</span>
+    <span class="nkind">${n.kind}</span>
+    ${badge}
+  </div>`;
+
+  if (n.fields?.length) {
+    html += '<div class="nf">';
+    n.fields.forEach(f => {
+      const fc = f.cold ? ' ice' : f.comp ? ' dim' : '';
+      html += `<div class="frow">
+        <span class="fn${fc}">${f.n}</span>
+        ${f.note ? `<span class="fnt">${f.note}</span>` : ''}
+        <span class="ft">${f.t || ''}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  if (n.cases?.length) {
+    html += '<div class="ecases">';
+    n.cases.forEach(c => { html += `<span class="ec">${c}</span>`; });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+
+  // Badge click → show panel
+  const badgeEl = el.querySelector('.nbadge');
+  if (badgeEl) {
+    badgeEl.addEventListener('click', ev => {
+      ev.stopPropagation();
+      selectNode(n.id);
+    });
+  }
+
+  // Node click → toggle fields
+  el.addEventListener('click', ev => {
+    ev.stopPropagation();
+    el.classList.toggle('open');
+  });
+
+  return el;
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────
+function renderAll() {
+  positions = computePositions();
+  const world = document.getElementById('world');
+
+  // Group labels
+  const groupFirstPos = {};
+  MODEL.nodes.forEach(n => {
+    if (!groupFirstPos[n.g]) groupFirstPos[n.g] = positions[n.id];
+  });
+  Object.entries(groupFirstPos).forEach(([g, p]) => {
+    const lbl = document.createElement('div');
+    lbl.className = 'glabel';
+    lbl.style.left = p.x + 'px';
+    lbl.style.top  = (p.y - 22) + 'px';
+    lbl.style.color = GCOL[g] || '#888';
+    lbl.textContent = GLABEL[g] || g;
+    world.appendChild(lbl);
+  });
+
+  // Nodes
+  MODEL.nodes.forEach(n => {
+    const el = buildNode(n);
+    world.appendChild(el);
+    nodeEls[n.id] = el;
+  });
+
+  resetView();
+  updateInfo();
+}
+
+// ── PANEL ────────────────────────────────────────────────────────────
+function selectNode(id) {
+  // Deselect previous
+  if (activeId && nodeEls[activeId]) {
+    nodeEls[activeId].classList.remove('sel');
+  }
+  // Reset dim/rel
+  Object.values(nodeEls).forEach(el => el.classList.remove('sel','rel','dim'));
+
+  if (activeId === id) {
+    activeId = null;
+    closePanel();
+    return;
+  }
+  activeId = id;
+
+  const el = nodeEls[id];
+  if (el) el.classList.add('sel');
+
+  // Dim all, highlight connected
+  const connected = new Set([id]);
+  (connMap[id] || []).forEach(c => connected.add(c.other));
+  Object.entries(nodeEls).forEach(([nid, nel]) => {
+    if (nel.style.display === 'none') return;
+    if (!connected.has(nid)) nel.classList.add('dim');
+    else if (nid !== id) nel.classList.add('rel');
+  });
+
+  openPanel(id);
+}
+
+function openPanel(id) {
+  const node = MODEL.nodes.find(n => n.id === id);
+  if (!node) return;
+
+  document.getElementById('ph-name').textContent = node.id;
+  document.getElementById('ph-kind').textContent = node.kind;
+
+  const conns = connMap[id] || [];
+  const plist = document.getElementById('plist');
+  const pempty = document.getElementById('pempty');
+
+  if (!conns.length) {
+    plist.innerHTML = '<div id="pempty">Keine Verbindungen</div>';
+    document.getElementById('panel').classList.add('open');
+    return;
+  }
+
+  const outgoing = conns.filter(c => c.dir === 'out');
+  const incoming = conns.filter(c => c.dir === 'in');
+
+  let html = '';
+
+  if (outgoing.length) {
+    html += `<div class="psec">Verweist auf (${outgoing.length})</div>`;
+    outgoing.forEach(c => {
+      const other = MODEL.nodes.find(n => n.id === c.other);
+      const col = GCOL[other?.g] || '#888';
+      html += `<div class="prow" onclick="jumpTo('${c.other}')">
+        <div class="prow-label">→ ${c.label || ''}</div>
+        <div class="prow-name">
+          <div class="dot" style="background:${col}"></div>
+          ${c.other}
+        </div>
+        <div class="prow-rel">${other?.kind || ''}</div>
+      </div>`;
+    });
+  }
+
+  if (incoming.length) {
+    html += `<div class="psec">Referenziert von (${incoming.length})</div>`;
+    incoming.forEach(c => {
+      const other = MODEL.nodes.find(n => n.id === c.other);
+      const col = GCOL[other?.g] || '#888';
+      html += `<div class="prow" onclick="jumpTo('${c.other}')">
+        <div class="prow-label">← ${c.label || ''}</div>
+        <div class="prow-name">
+          <div class="dot" style="background:${col}"></div>
+          ${c.other}
+        </div>
+        <div class="prow-rel">${other?.kind || ''}</div>
+      </div>`;
+    });
+  }
+
+  plist.innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+  updateInfo(id, conns.length);
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  Object.values(nodeEls).forEach(el => el.classList.remove('sel','rel','dim'));
+  activeId = null;
+  updateInfo();
+}
+
+function jumpTo(id) {
+  const el = nodeEls[id];
+  if (!el) return;
+  // Scroll to node: pan so it's centred
+  const p = positions[id];
+  const cr = document.getElementById('cv').getBoundingClientRect();
+  panX = cr.width/2  - (p.x + 128) * scale;
+  panY = cr.height/2 - (p.y +  18) * scale;
+  applyTransform();
+  // Flash highlight
+  el.style.transition = 'box-shadow .1s';
+  el.style.boxShadow = '0 0 0 3px #58a6ff';
+  setTimeout(() => { el.style.boxShadow = ''; }, 800);
+}
+
+// ── FILTERS ──────────────────────────────────────────────────────────
+function applyFilters() {
+  MODEL.nodes.forEach(n => {
+    const vis = visGroups.has(n.g) && (!searchQ ||
+      n.id.toLowerCase().includes(searchQ) ||
+      (n.fields||[]).some(f =>
+        f.n.toLowerCase().includes(searchQ) ||
+        (f.note||'').toLowerCase().includes(searchQ)
+      ) ||
+      (n.cases||[]).some(c => c.toLowerCase().includes(searchQ))
+    );
+    nodeEls[n.id].style.display = vis ? '' : 'none';
+  });
+  updateInfo();
+}
+
+function doSearch() {
+  searchQ = document.getElementById('search').value.toLowerCase().trim();
+  applyFilters();
+}
+
+function toggleTag(el) {
+  const g = el.dataset.g;
+  if (visGroups.has(g)) { visGroups.delete(g); el.classList.replace('on','off'); }
+  else                   { visGroups.add(g);    el.classList.replace('off','on'); }
+  applyFilters();
+}
+
+function updateInfo(id, n) {
+  const vis = MODEL.nodes.filter(n => nodeEls[n.id]?.style.display !== 'none').length;
+  const el  = document.getElementById('inf');
+  if (id) {
+    el.textContent = `${id} · ${n} Verbindungen`;
+    el.style.color = '#79c0ff';
+  } else {
+    el.textContent = `${vis} / ${MODEL.nodes.length} Structs · Klick = Felder · Badge = Verbindungen`;
+    el.style.color = '#484f58';
+  }
+}
+
+// ── PAN & ZOOM ────────────────────────────────────────────────────────
+const cv    = document.getElementById('cv');
+const world = document.getElementById('world');
+
+cv.addEventListener('mousedown', e => {
+  if (e.target.closest('.node') || e.target.closest('#panel')) return;
+  dragging = true; lastMX = e.clientX; lastMY = e.clientY;
+  cv.classList.add('grab');
+  closePanel();
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  panX += e.clientX - lastMX; panY += e.clientY - lastMY;
+  lastMX = e.clientX; lastMY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; cv.classList.remove('grab'); });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r  = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const d  = e.deltaY < 0 ? 1.12 : 0.9;
+  const ns = Math.min(2, Math.max(0.06, scale * d));
+  panX = mx - (mx - panX) * (ns / scale);
+  panY = my - (my - panY) * (ns / scale);
+  scale = ns;
+  applyTransform();
+}, {passive: false});
+
+function applyTransform() {
+  world.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+}
+
+function resetView() {
+  const r    = cv.getBoundingClientRect();
+  const allP = Object.values(positions);
+  const maxX = Math.max(...allP.map(p => p.x)) + NW + 40;
+  const maxY = Math.max(...allP.map(p => p.y)) + 60;
+  scale = Math.min(r.width / maxX, r.height / maxY, 1) * 0.88;
+  panX  = (r.width - maxX * scale) / 2;
+  panY  = 10;
+  applyTransform();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
