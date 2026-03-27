@@ -1,0 +1,6 @@
+@echo off
+echo Starting Ollama (Docker)...
+docker compose up -d
+
+echo Starting FastAPI...
+.venv\Scripts\activate && fastapi dev
