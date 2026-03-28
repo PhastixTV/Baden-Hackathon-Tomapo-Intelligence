@@ -1,17 +1,26 @@
 import json
+import os
 import joblib
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 from ollama import chat, ChatResponse
 
+load_dotenv()
+
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+
 app = FastAPI()
 
-model = joblib.load("ml/model.pkl")
-feature_order: list[str] = json.load(open("ml/feature_order.json"))
+model = joblib.load(os.getenv("ML_MODEL_PATH", "ml/model.pkl"))
+feature_order: list[str] = json.load(open(os.getenv("ML_FEATURE_ORDER_PATH", "ml/feature_order.json")))
+# Decision threshold from Isolation Forest (model.offset_).
+# Scores below this are classified as anomalies by the model.
+ML_THRESHOLD = float(model.offset_)
 
 # (field, severity, category, expected, check)
 # coldChainBroken & isIntact are intentionally excluded — they duplicate hadColdChainBreak
@@ -72,7 +81,13 @@ def build_anomalies(fields: dict) -> list:
 
 def calculate_risk_score(anomalies: list, ml_score: float) -> int:
     rule_score = sum(SEVERITY_SCORE.get(a["severity"], 0) for a in anomalies)
-    ml_contribution = max(0, int((-ml_score - 0.1) / 0.5 * 20)) if ml_score < -0.1 else 0
+    # Only add ML contribution when the model actually classifies this as anomalous
+    # (score below the decision threshold). Scale up to 20 extra points for very
+    # negative scores (0.15 below threshold = full 20 pts).
+    if ml_score < ML_THRESHOLD:
+        ml_contribution = min(20, int((ML_THRESHOLD - ml_score) / 0.15 * 20))
+    else:
+        ml_contribution = 0
     return min(100, rule_score + ml_contribution)
 
 
@@ -318,7 +333,7 @@ async def analyze(request: IntelligenceRequest):
         f"Be direct and concise."
     )
     llm_response = chat(
-        model="llama3.2",
+        model=OLLAMA_MODEL,
         messages=[{"role": "user", "content": summary_prompt}],
     )
 
@@ -340,6 +355,7 @@ async def chat_endpoint(request: ChatRequest):
     if request.batchContext or request.productInfo:
         sections = [
             "You are a food safety assistant for the app 'Tomapo Intelligence'.",
+            "Always respond in the same language the user writes in. If the user writes in German, respond in German. If they write in English, respond in English.",
             "Answer questions about this product and batch precisely and clearly.\n",
         ]
 
@@ -360,7 +376,7 @@ async def chat_endpoint(request: ChatRequest):
 
     def generate():
         stream = chat(
-            model="llama3.2",
+            model=OLLAMA_MODEL,
             messages=messages,
             stream=True,
         )
