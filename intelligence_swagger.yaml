@@ -1,0 +1,850 @@
+openapi: 3.0.3
+info:
+  title: Tomapo Intelligence API
+  version: 1.0.0
+  description: Tomapo Intelligence ML Microservice — Anomalie-Erkennung, Nachhaltigkeitsanalyse
+    und AI-Chat. Läuft als Python FastAPI Service auf Port 8000. Keine Authentifizierung
+    erforderlich (interner Service).
+servers:
+- url: http://localhost:8000
+  description: Local ML Service
+tags:
+- name: Analysis
+  description: Batch-Analyse und Anomalie-Erkennung
+- name: Chat
+  description: AI-Chat Streaming
+- name: Health
+  description: Health Check
+components:
+  schemas:
+    IntelligenceRequest:
+      type: object
+      required:
+      - batchId
+      - productId
+      - hadColdChainBreak
+      - isIntact
+      - highestTemperatureCelsius
+      - lowestTemperatureCelsius
+      - coldChainBreakCount
+      - totalBreakDurationMinutes
+      - totalRefrigeratedTransportHours
+      - coldChainBroken
+      - coldStorage_maxActualTemperatureCelsius
+      - coldStorage_minActualTemperatureCelsius
+      - coldStorage_avgActualTemperatureCelsius
+      - coldStorage_targetTemperatureCelsius
+      - coldChainBreaks_maxTemperatureReached
+      - coldChainBreaks_totalDurationMinutes
+      - measuredCelsius
+      - minAllowedCelsius
+      - maxAllowedCelsius
+      - tempIsWithinRange
+      - refrigerationTemperatureCelsius
+      - wasRefrigerated
+      - harvestTemperatureCelsius
+      - processingTemperatureCelsius
+      - displayTemperatureCelsius
+      - sampleArrivalTemperatureCelsius
+      - pathogensDetectedCount
+      - pathogensCfuPerGramMax
+      - pathogensLimitExceededCount
+      - microbiologicalDetectedCount
+      - microbiologicalCfuPerGramMax
+      - microbiologicalLimitExceededCount
+      - substancesMeasuredMgPerKgMax
+      - substancesLimitMgPerKg
+      - substancesLimitExceededCount
+      - chemicalMeasuredValueMax
+      - chemicalMrlValue
+      - chemicalMrlExceededCount
+      - chemicalBelowLod
+      - overallVerdictFail
+      - legalLimitsExceeded
+      - exceedanceCount
+      - isIso17025Accredited
+      - nutritionalDeviationPercent
+      - nutritionalIsWithinEuTolerance
+      - physicalOutOfSpecCount
+      - allergenDetectedCount
+      - allergenMeasuredMgPerKgMax
+      - allergenLabelIncorrectCount
+      - authenticityFailCount
+      - authenticityConfidencePercentMin
+      - certificationDaysUntilExpiry
+      - certificationAuditScore
+      - nonConformitiesSeverityMax
+      - nonConformitiesUncorrectedCount
+      - nonConformitiesOverdueDays
+      - moldDetected
+      - foreignBodyDetected
+      - colorOk
+      - shapeOk
+      - surfaceOk
+      - rejectionRate
+      - visualDefectsFound
+      - isLeaking
+      - isSealed
+      - vacuumIntact
+      - mapGasCompositionCorrect
+      - labelingCorrect
+      - barcodeReadable
+      - fillWeightCorrect
+      - packagingDefectsFound
+      - measuredWeightG
+      - targetWeightG
+      - weightTolerancePercent
+      - weightIsWithinTolerance
+      - weightSampleSize
+      - distanceKm
+      - transportIsRefrigerated
+      - co2EmissionsKg
+      - transportDelayMinutes
+      - maxDurationExceeded
+      - storageAverageTemperatureCelsius
+      - humidityPercent
+      - storageDurationHours
+      - importInspectionPassed
+      - customsCleared
+      - handlingCount
+      - alertsTotalCount
+      - alertsSeverityMax
+      - alertsActiveCount
+      - traceabilityCompleteness
+      - traceabilityHasGaps
+      - isThirdPartyVerified
+      - verifiedStations
+      - unknownStations
+      - yieldPercent
+      - areaHectares
+      - isHaccpCertified
+      - batchSizeKg
+      - isMscCertified
+      - isAscCertified
+      description: Alle 99 Felder sind REQUIRED. Booleans als 0/1, null/fehlende Werte
+        als 0 senden.
+      properties:
+        batchId:
+          type: string
+          example: batch-normal-001
+        productId:
+          type: string
+          example: prod-meat-001
+        hadColdChainBreak:
+          type: integer
+          enum:
+          - 0
+          - 1
+          description: Boolean 0/1
+        isIntact:
+          type: integer
+          enum:
+          - 0
+          - 1
+        highestTemperatureCelsius:
+          type: number
+        lowestTemperatureCelsius:
+          type: number
+        coldChainBreakCount:
+          type: integer
+        totalBreakDurationMinutes:
+          type: number
+        totalRefrigeratedTransportHours:
+          type: number
+        coldChainBroken:
+          type: integer
+          enum:
+          - 0
+          - 1
+        coldStorage_maxActualTemperatureCelsius:
+          type: number
+        coldStorage_minActualTemperatureCelsius:
+          type: number
+        coldStorage_avgActualTemperatureCelsius:
+          type: number
+        coldStorage_targetTemperatureCelsius:
+          type: number
+        coldChainBreaks_maxTemperatureReached:
+          type: number
+        coldChainBreaks_totalDurationMinutes:
+          type: number
+        measuredCelsius:
+          type: number
+        minAllowedCelsius:
+          type: number
+        maxAllowedCelsius:
+          type: number
+        tempIsWithinRange:
+          type: integer
+          enum:
+          - 0
+          - 1
+        refrigerationTemperatureCelsius:
+          type: number
+        wasRefrigerated:
+          type: integer
+          enum:
+          - 0
+          - 1
+        harvestTemperatureCelsius:
+          type: number
+        processingTemperatureCelsius:
+          type: number
+        displayTemperatureCelsius:
+          type: number
+        sampleArrivalTemperatureCelsius:
+          type: number
+        pathogensDetectedCount:
+          type: integer
+        pathogensCfuPerGramMax:
+          type: number
+        pathogensLimitExceededCount:
+          type: integer
+        microbiologicalDetectedCount:
+          type: integer
+        microbiologicalCfuPerGramMax:
+          type: number
+        microbiologicalLimitExceededCount:
+          type: integer
+        substancesMeasuredMgPerKgMax:
+          type: number
+        substancesLimitMgPerKg:
+          type: number
+        substancesLimitExceededCount:
+          type: integer
+        chemicalMeasuredValueMax:
+          type: number
+        chemicalMrlValue:
+          type: number
+        chemicalMrlExceededCount:
+          type: integer
+        chemicalBelowLod:
+          type: integer
+          enum:
+          - 0
+          - 1
+        overallVerdictFail:
+          type: integer
+          enum:
+          - 0
+          - 1
+          description: FAIL=1, PASS=0
+        legalLimitsExceeded:
+          type: integer
+          enum:
+          - 0
+          - 1
+        exceedanceCount:
+          type: integer
+        isIso17025Accredited:
+          type: integer
+          enum:
+          - 0
+          - 1
+        nutritionalDeviationPercent:
+          type: number
+        nutritionalIsWithinEuTolerance:
+          type: integer
+          enum:
+          - 0
+          - 1
+        physicalOutOfSpecCount:
+          type: integer
+        allergenDetectedCount:
+          type: integer
+        allergenMeasuredMgPerKgMax:
+          type: number
+        allergenLabelIncorrectCount:
+          type: integer
+        authenticityFailCount:
+          type: integer
+        authenticityConfidencePercentMin:
+          type: number
+          minimum: 0
+          maximum: 100
+        certificationDaysUntilExpiry:
+          type: number
+          description: Negative = abgelaufen
+        certificationAuditScore:
+          type: number
+        nonConformitiesSeverityMax:
+          type: integer
+          description: critical=3/major=2/minor=1
+        nonConformitiesUncorrectedCount:
+          type: integer
+        nonConformitiesOverdueDays:
+          type: number
+        moldDetected:
+          type: integer
+          enum:
+          - 0
+          - 1
+        foreignBodyDetected:
+          type: integer
+          enum:
+          - 0
+          - 1
+        colorOk:
+          type: integer
+          enum:
+          - 0
+          - 1
+        shapeOk:
+          type: integer
+          enum:
+          - 0
+          - 1
+        surfaceOk:
+          type: integer
+          enum:
+          - 0
+          - 1
+        rejectionRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        visualDefectsFound:
+          type: integer
+        isLeaking:
+          type: integer
+          enum:
+          - 0
+          - 1
+        isSealed:
+          type: integer
+          enum:
+          - 0
+          - 1
+        vacuumIntact:
+          type: integer
+          enum:
+          - 0
+          - 1
+        mapGasCompositionCorrect:
+          type: integer
+          enum:
+          - 0
+          - 1
+        labelingCorrect:
+          type: integer
+          enum:
+          - 0
+          - 1
+        barcodeReadable:
+          type: integer
+          enum:
+          - 0
+          - 1
+        fillWeightCorrect:
+          type: integer
+          enum:
+          - 0
+          - 1
+        packagingDefectsFound:
+          type: integer
+        measuredWeightG:
+          type: number
+        targetWeightG:
+          type: number
+        weightTolerancePercent:
+          type: number
+        weightIsWithinTolerance:
+          type: integer
+          enum:
+          - 0
+          - 1
+        weightSampleSize:
+          type: integer
+        distanceKm:
+          type: number
+        transportIsRefrigerated:
+          type: integer
+          enum:
+          - 0
+          - 1
+        co2EmissionsKg:
+          type: number
+        transportDelayMinutes:
+          type: number
+        maxDurationExceeded:
+          type: integer
+          enum:
+          - 0
+          - 1
+        storageAverageTemperatureCelsius:
+          type: number
+        humidityPercent:
+          type: number
+        storageDurationHours:
+          type: number
+        importInspectionPassed:
+          type: integer
+          enum:
+          - 0
+          - 1
+        customsCleared:
+          type: integer
+          enum:
+          - 0
+          - 1
+        handlingCount:
+          type: integer
+        alertsTotalCount:
+          type: integer
+        alertsSeverityMax:
+          type: integer
+          description: critical=4/high=3/medium=2/low=1
+        alertsActiveCount:
+          type: integer
+        traceabilityCompleteness:
+          type: number
+          minimum: 0
+          maximum: 1
+        traceabilityHasGaps:
+          type: integer
+          enum:
+          - 0
+          - 1
+        isThirdPartyVerified:
+          type: integer
+          enum:
+          - 0
+          - 1
+        verifiedStations:
+          type: integer
+        unknownStations:
+          type: integer
+        yieldPercent:
+          type: number
+        areaHectares:
+          type: number
+        isHaccpCertified:
+          type: integer
+          enum:
+          - 0
+          - 1
+        batchSizeKg:
+          type: number
+        isMscCertified:
+          type: integer
+          enum:
+          - 0
+          - 1
+        isAscCertified:
+          type: integer
+          enum:
+          - 0
+          - 1
+      example:
+        batchId: batch-normal-001
+        productId: prod-meat-001
+        hadColdChainBreak: 0
+        isIntact: 1
+        highestTemperatureCelsius: 6.8
+        lowestTemperatureCelsius: 3.2
+        coldChainBreakCount: 0
+        totalBreakDurationMinutes: 0
+        totalRefrigeratedTransportHours: 12
+        coldChainBroken: 0
+        coldStorage_maxActualTemperatureCelsius: 6.5
+        coldStorage_minActualTemperatureCelsius: 3.1
+        coldStorage_avgActualTemperatureCelsius: 5.0
+        coldStorage_targetTemperatureCelsius: 5.0
+        coldChainBreaks_maxTemperatureReached: 0
+        coldChainBreaks_totalDurationMinutes: 0
+        measuredCelsius: 5.2
+        minAllowedCelsius: 0
+        maxAllowedCelsius: 7
+        tempIsWithinRange: 1
+        refrigerationTemperatureCelsius: 5.0
+        wasRefrigerated: 1
+        harvestTemperatureCelsius: 18
+        processingTemperatureCelsius: 5.5
+        displayTemperatureCelsius: 5.0
+        sampleArrivalTemperatureCelsius: 5.3
+        pathogensDetectedCount: 0
+        pathogensCfuPerGramMax: 0
+        pathogensLimitExceededCount: 0
+        microbiologicalDetectedCount: 0
+        microbiologicalCfuPerGramMax: 850
+        microbiologicalLimitExceededCount: 0
+        substancesMeasuredMgPerKgMax: 0.01
+        substancesLimitMgPerKg: 0.1
+        substancesLimitExceededCount: 0
+        chemicalMeasuredValueMax: 0.02
+        chemicalMrlValue: 0.1
+        chemicalMrlExceededCount: 0
+        chemicalBelowLod: 1
+        overallVerdictFail: 0
+        legalLimitsExceeded: 0
+        exceedanceCount: 0
+        isIso17025Accredited: 1
+        nutritionalDeviationPercent: 1.5
+        nutritionalIsWithinEuTolerance: 1
+        physicalOutOfSpecCount: 0
+        allergenDetectedCount: 0
+        allergenMeasuredMgPerKgMax: 0
+        allergenLabelIncorrectCount: 0
+        authenticityFailCount: 0
+        authenticityConfidencePercentMin: 97
+        certificationDaysUntilExpiry: 180
+        certificationAuditScore: 92
+        nonConformitiesSeverityMax: 0
+        nonConformitiesUncorrectedCount: 0
+        nonConformitiesOverdueDays: 0
+        moldDetected: 0
+        foreignBodyDetected: 0
+        colorOk: 1
+        shapeOk: 1
+        surfaceOk: 1
+        rejectionRate: 0.5
+        visualDefectsFound: 0
+        isLeaking: 0
+        isSealed: 1
+        vacuumIntact: 1
+        mapGasCompositionCorrect: 1
+        labelingCorrect: 1
+        barcodeReadable: 1
+        fillWeightCorrect: 1
+        packagingDefectsFound: 0
+        measuredWeightG: 498
+        targetWeightG: 500
+        weightTolerancePercent: 2
+        weightIsWithinTolerance: 1
+        weightSampleSize: 10
+        distanceKm: 320
+        transportIsRefrigerated: 1
+        co2EmissionsKg: 12.5
+        transportDelayMinutes: 15
+        maxDurationExceeded: 0
+        storageAverageTemperatureCelsius: 5.1
+        humidityPercent: 65
+        storageDurationHours: 18
+        importInspectionPassed: 1
+        customsCleared: 1
+        handlingCount: 3
+        alertsTotalCount: 0
+        alertsSeverityMax: 0
+        alertsActiveCount: 0
+        traceabilityCompleteness: 0.97
+        traceabilityHasGaps: 0
+        isThirdPartyVerified: 1
+        verifiedStations: 5
+        unknownStations: 0
+        yieldPercent: 88
+        areaHectares: 12
+        isHaccpCertified: 1
+        batchSizeKg: 500
+        isMscCertified: 0
+        isAscCertified: 0
+    Anomaly:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+        category:
+          type: string
+          example: coldChain
+        field:
+          type: string
+          example: hadColdChainBreak
+        value:
+          example: 1
+        expected:
+          example: 0
+    Sustainability:
+      type: object
+      properties:
+        co2TotalKgPerKg:
+          type: number
+        ecoscoreGrade:
+          type: string
+          enum:
+          - a
+          - b
+          - c
+          - d
+          - e
+        transportEmissionsGramsCo2:
+          type: integer
+        co2ByPhase:
+          type: object
+          properties:
+            agriculture:
+              type: number
+            processing:
+              type: number
+            transportation:
+              type: number
+            packaging:
+              type: number
+    AnalyzeResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        riskLevel:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+        recommendation:
+          type: string
+          enum:
+          - approve
+          - inspect
+          - quarantine
+          - do_not_sell
+        anomalies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Anomaly'
+        sustainability:
+          $ref: '#/components/schemas/Sustainability'
+        summary:
+          type: string
+          description: LLM-generierte Zusammenfassung in der Sprache der Anfrage
+      example:
+        batchId: batch-warn-002
+        riskScore: 57
+        riskLevel: high
+        recommendation: quarantine
+        anomalies:
+        - severity: high
+          category: coldChain
+          field: hadColdChainBreak
+          value: 1
+          expected: 0
+        - severity: medium
+          category: temperature
+          field: tempIsWithinRange
+          value: 0
+          expected: 1
+        sustainability:
+          co2TotalKgPerKg: 0.061
+          ecoscoreGrade: a
+          transportEmissionsGramsCo2: 5152
+        summary: Batch zeigt einen Kühlkettenbruch auf 9.5°C für 75 Minuten. Quarantäne
+          empfohlen.
+    ChatMessage:
+      type: object
+      required:
+      - role
+      - content
+      properties:
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+        content:
+          type: string
+    ChatRequest:
+      type: object
+      required:
+      - batchId
+      - productId
+      - chatHistory
+      properties:
+        batchId:
+          type: string
+          example: batch-warn-002
+        productId:
+          type: string
+          example: prod-fish-002
+        chatHistory:
+          type: array
+          description: Vollständige Konversationshistorie — neueste Nachricht zuletzt
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        batchContext:
+          type: object
+          nullable: true
+          description: 'Volle /analyze Response. Service liest: riskScore, riskLevel,
+            recommendation, anomalies, sustainability.'
+          allOf:
+          - $ref: '#/components/schemas/AnalyzeResponse'
+        productInfo:
+          type: object
+          nullable: true
+          description: 'Produktobjekt aus DB. Service extrahiert: productName, brands,
+            productQuantity+Unit, categoriesTags[0-1], countriesTags[0-2], nutriscoreGrade,
+            ecoscoreGrade, novaGroup, nutrientLevels, allergensTags[0-9], labelsTags[0-4],
+            requiresColdChain, activeAlerts[0-1], traceabilityScore.completeness.'
+          properties:
+            productName:
+              type: string
+            genericName:
+              type: string
+            brands:
+              type: string
+            productQuantity:
+              type: number
+            productQuantityUnit:
+              type: string
+            categoriesTags:
+              type: array
+              items:
+                type: string
+            countriesTags:
+              type: array
+              items:
+                type: string
+            nutriscoreGrade:
+              type: string
+            ecoscoreGrade:
+              type: string
+            novaGroup:
+              type: integer
+            nutrientLevels:
+              type: object
+            allergensTags:
+              type: array
+              items:
+                type: string
+            labelsTags:
+              type: array
+              items:
+                type: string
+            requiresColdChain:
+              type: boolean
+            activeAlerts:
+              type: array
+              items:
+                type: object
+            traceabilityScore:
+              type: object
+      example:
+        batchId: batch-warn-002
+        productId: prod-fish-002
+        chatHistory:
+        - role: user
+          content: Warum wurde diese Charge als hohes Risiko eingestuft?
+        batchContext:
+          batchId: batch-warn-002
+          riskScore: 57
+          riskLevel: high
+          recommendation: quarantine
+          anomalies: []
+          sustainability: {}
+          summary: '...'
+paths:
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health Check
+      description: Prüft ob der FastAPI Service und Ollama erreichbar sind.
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /analyze:
+    post:
+      tags:
+      - Analysis
+      summary: Batch analysieren — ML Anomalie-Erkennung
+      description: 'Empfängt alle 99 flachen Felder einer Trace-Batch. Führt Isolation
+        Forest ML-Analyse durch, wendet Anomalie-Regeln an, berechnet riskScore (0-100),
+        riskLevel, recommendation und generiert eine LLM-Zusammenfassung.
+
+
+        **Felder:** Alle 99 Felder sind REQUIRED. Booleans als 0/1 kodiert. Null/fehlende
+        Werte als 0 senden.
+
+
+        **Fehler 422:** Pydantic Validierungsfehler — ein Feld fehlt oder hat falschen
+        Typ. Fehlermeldung zeigt welches Feld.
+
+
+        **Fehler 500:** Ollama nicht gestartet oder Modell nicht geladen.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntelligenceRequest'
+      responses:
+        '200':
+          description: Analyse-Ergebnis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+        '422':
+          description: Pydantic Validierungsfehler — fehlendes oder falsch typisiertes
+            Feld
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        loc:
+                          type: array
+                        msg:
+                          type: string
+                        type:
+                          type: string
+        '500':
+          description: Ollama nicht erreichbar oder Modell nicht geladen
+  /chat:
+    post:
+      tags:
+      - Chat
+      summary: AI-Chat über ein Produkt und Batch (Streaming)
+      description: 'Streaming-Endpoint. Gibt `text/plain` Stream zurück — kein JSON.
+        Das LLM antwortet automatisch in der Sprache der Frage (DE → DE, EN → EN,
+        FR → FR).
+
+
+        **chatHistory:** Vollständige Konversationshistorie beider Rollen, neueste
+        Nachricht zuletzt.
+
+
+        **batchContext:** Volle `/analyze` Response direkt übergeben.
+
+
+        **productInfo:** Vollständiges Produktobjekt. Service filtert intern relevante
+        Felder — alle anderen Felder werden ignoriert.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Streaming text/plain Antwort
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Die Charge zeigt ein hohes Risiko aufgrund eines Kühlkettenbruchs
+                  von 75 Minuten...
+        '422':
+          description: Validierungsfehler
+        '500':
+          description: Ollama nicht erreichbar
